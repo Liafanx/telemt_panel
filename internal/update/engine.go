@@ -58,6 +58,17 @@ var ErrBusy = errors.New("update: another run is in progress")
 // "panel".
 var ErrUnknownTarget = errors.New("update: unknown target")
 
+// ErrUnsupportedVersion rejects panel branches with incompatible state/config.
+var ErrUnsupportedVersion = errors.New("update: only panel 1.x releases are supported")
+
+func versionAllowed(target, version string) bool {
+	if target != TargetPanel {
+		return true
+	}
+	major, minor, patch, _, err := ParseVersion(version)
+	return err == nil && major == 1 && minor >= 0 && patch >= 0
+}
+
 // Target abstracts the differences between updating Telemt and
 // self-updating the panel; everything else (the state machine, journal,
 // rollback) is shared.
@@ -268,17 +279,22 @@ func (e *Engine) LockHeld() bool {
 	return e.running
 }
 
-// HasActiveRun is LockHeld under the name its one other caller
-// (httpapi's shutdown path) actually cares about: not "is Apply
-// serializing right now" but "is there an install/restart in flight that
-// graceful shutdown should say something about". It does not block
-// shutdown on the answer — Server.Run never waits for a run to finish (a
-// self-update's own restart makes that the wrong thing to do); it only
-// decides whether to log a warning before exiting, so the operator isn't
-// left guessing why the panel restarted mid-update. Correctness for that
-// case comes from ReconcileStartup at the next boot, not from this check.
+// HasActiveRun reports an update in flight for the shutdown warning.
+// Manual service controls reserve the lock but have no update to reconcile.
 func (e *Engine) HasActiveRun() bool {
-	return e.LockHeld()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.running && e.activeTarget != ""
+}
+
+// WithHostControl serializes manual service commands with binary operations.
+// An empty target reserves the shared lock without fabricating an update run.
+func (e *Engine) WithHostControl(run func() error) error {
+	if !e.tryLock("") {
+		return ErrBusy
+	}
+	defer e.unlock()
+	return run()
 }
 
 // ActiveRun returns targetName's current run status and true while it is
@@ -336,6 +352,9 @@ func (e *Engine) Apply(ctx context.Context, targetName, version string) error {
 		return ErrBusy
 	}
 	defer e.unlock()
+	if !versionAllowed(targetName, version) {
+		return ErrUnsupportedVersion
+	}
 	return e.runPhases(ctx, targetName, t, version)
 }
 
@@ -352,6 +371,10 @@ func (e *Engine) StartApply(targetName, version string) error {
 	}
 	if !e.tryLock(targetName) {
 		return ErrBusy
+	}
+	if !versionAllowed(targetName, version) {
+		e.unlock()
+		return ErrUnsupportedVersion
 	}
 	go func() {
 		defer e.unlock()

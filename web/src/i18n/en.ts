@@ -1,6 +1,9 @@
 import type { Dict } from "./dict";
 import { geoipEn } from "./geoip.en";
 import { quotaScheduleEn } from "./quotaSchedule.en";
+import {releasePickerEn} from './releasePicker.en';
+import {serviceControlEn} from './serviceControl.en';
+import { linkAddressEn } from "./linkAddress.en";
 
 // The English dictionary. Typed as `Dict` — the shape comes from ru.ts, so
 // a key added there is a compile error here until it is translated, and a
@@ -12,6 +15,9 @@ import { quotaScheduleEn } from "./quotaSchedule.en";
 // Reissue, Белый список → Allowlist. Telemt's own identifiers (config keys,
 // ME, DC, Fake-TLS, hardswap, PROXY protocol) are never translated.
 export const en: Dict = {
+  linkAddress: linkAddressEn,
+  serviceControl:serviceControlEn,
+  releasePicker:releasePickerEn,
   quotaSchedule: quotaScheduleEn,
   geoip: geoipEn,
   locale: "en",
@@ -685,6 +691,7 @@ export const en: Dict = {
       healthyOf: "{healthy} / {total} healthy",
       onAverage: "avg",
       empty: "No upstreams configured.",
+      unavailable: "Upstream data is unavailable",
       successRate: "Connection success rate",
       checkedAgo: "checked {seconds}s ago",
       more: "{count} more",
@@ -3168,6 +3175,8 @@ export const en: Dict = {
       capsTitle: "Capabilities",
       caps: {
         restart_telemt: "Restart Telemt",
+        start_telemt: "Start Telemt",
+        stop_telemt: "Stop Telemt",
         restart_panel: "Restart the panel",
         log_tail: "Log tail",
         log_stream: "Live logs",
@@ -3209,6 +3218,8 @@ export const en: Dict = {
         updatesGroupDescription: "Installing binaries through a verified system path",
         capDescriptions: {
           restart_telemt: "Restart the main service through the host manager",
+          start_telemt: "Start the Telemt service independently of API availability",
+          stop_telemt: "Stop the Telemt service without deleting data",
           restart_panel: "Restart the panel after installing a new version",
           log_tail: "Read the latest lines from the system journal",
           log_stream: "Continuously receive new journal lines",
@@ -3591,7 +3602,9 @@ export const en: Dict = {
     capability_absent: "This version of Telemt doesn't support that.",
     capability_unavailable: "That isn't available on this server right now.",
     manual_restart_required: "Automatic restart isn't available — run the command by hand.",
-    update_locked: "An update is already running.",
+    update_locked: "Another service or update operation is running.",
+    manual_service_control_required:"Automatic control is unavailable. Check the service binding and permission for this command.",
+    service_action_unconfirmed:"Command result is unconfirmed. Check service state before retrying.",
     sublink_unavailable: "The subscription page is turned off.",
     log_tail_unavailable: "Reading the last log lines isn't available.",
     log_stream_unavailable: "Live logs aren't available on this platform.",
@@ -3605,6 +3618,7 @@ export const en: Dict = {
     quota_schedule_conflict: "The schedule changed. Load current settings before saving.",
     quota_schedule_storage: "Auto-reset requires durable panel technical state (data_dir). Check disk availability and write permissions.",
     quota_schedule_unavailable: "Schedule state or the Telemt quota API is unavailable. Auto-reset is paused; check connectivity and panel logs.",
+    update_version_unsupported:"This panel can install only panel 1.x releases. Switching to legacy or another major line is not supported.",
     invalid_webauthn_challenge: "This passkey request expired or was already used. Start again.",
     invalid_webauthn_response: "The authenticator response could not be verified.",
     webauthn_credential_exists: "This passkey is already registered.",
@@ -3663,6 +3677,7 @@ export const en: Dict = {
   },
   auditActions: {
     "branding.settings_change": "Panel branding changed",
+    "links.settings_change": "Connection link address settings changed",
     "geoip.settings_change": "IP geography settings changed",
     "geoip.update": "GeoIP database update requested",
     login: "Signed in",
@@ -3693,6 +3708,11 @@ export const en: Dict = {
     "config.patch": "Changed the Telemt configuration",
     "telemt.reload": "Reloaded the Telemt configuration",
     "telemt.restart": "Restarted Telemt",
+    "telemt.start": "Completed the Telemt start command",
+    "telemt.stop": "Completed the Telemt stop command",
+    "telemt.start.unconfirmed": "Telemt start result is unconfirmed",
+    "telemt.stop.unconfirmed": "Telemt stop result is unconfirmed",
+    "telemt.restart.unconfirmed": "Telemt restart result is unconfirmed",
     "update.apply": "Started an update",
     "update.auto_change": "Changed auto-update settings",
     "web.sessions.close": "Closed WEB sessions",

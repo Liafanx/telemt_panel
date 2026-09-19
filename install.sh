@@ -1204,15 +1204,18 @@ print_telemt_detection() {
 #  Generators
 # ═════════════════════════════════════════════════════════════════════════════
 
-# restart_cmd SERVICE — the exact argv the panel's ServiceManager runs,
+# service_cmd SERVICE ACTION — the exact argv the panel's ServiceManager runs,
 # with absolute paths as sudoers requires.
-restart_cmd() {
+service_cmd() {
+  case "$2" in start|stop|restart) ;; *) return 1 ;; esac
   case "$INIT" in
-    systemd) printf '%s restart %s' "$(command -v systemctl)" "$1" ;;
-    openrc) printf '%s %s restart' "$(command -v rc-service)" "$1" ;;
-    procd|sysvinit) printf '/etc/init.d/%s restart' "$1" ;;
+    systemd) printf '%s %s %s' "$(command -v systemctl)" "$2" "$1" ;;
+    openrc) printf '%s %s %s' "$(command -v rc-service)" "$1" "$2" ;;
+    procd|sysvinit) printf '/etc/init.d/%s %s' "$1" "$2" ;;
   esac
 }
+
+restart_cmd() { service_cmd "$1" restart; }
 
 # restart_display SERVICE — the same command as typed by a human.
 restart_display() {
@@ -1363,6 +1366,14 @@ EOF
   done
   printf '%s ALL=(root) NOPASSWD: %s\n' "$SYSTEM_USER" "$(restart_cmd "$TELEMT_SVC")"
   printf '%s ALL=(root) NOPASSWD: %s\n' "$SYSTEM_USER" "$(restart_cmd "$SERVICE_NAME")"
+  _control_telemt="$TELEMT_SVC"; _control_panel="$SERVICE_NAME"
+  if [ "$INIT" = "systemd" ]; then
+    _control_telemt=${_control_telemt%.service}; _control_panel=${_control_panel%.service}
+  fi
+  if [ "$_control_telemt" != "$_control_panel" ]; then
+    printf '%s ALL=(root) NOPASSWD: %s\n' "$SYSTEM_USER" "$(service_cmd "$TELEMT_SVC" start)"
+    printf '%s ALL=(root) NOPASSWD: %s\n' "$SYSTEM_USER" "$(service_cmd "$TELEMT_SVC" stop)"
+  fi
 }
 
 gen_service_systemd() {

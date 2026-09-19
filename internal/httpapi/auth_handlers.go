@@ -368,6 +368,7 @@ func (s *Server) appendAuditIdentity(actor, ip, action, subject, detail string) 
 func administrativeHistoryEvent(ts time.Time, action, subject string) (store.HistoryEvent, bool) {
 	switch action {
 	case "config.patch", "config.patch.toml", "config.web_access",
+		"telemt.start", "telemt.stop", "telemt.start.unconfirmed", "telemt.stop.unconfirmed", "telemt.restart.unconfirmed",
 		"quota.schedule.global", "quota.schedule.user", "quota.schedule.completed", "quota.schedule.partial", "quota.schedule.stopped", "quota.schedule.interrupted",
 		"quota.reset_all.completed", "quota.reset_all.partial", "quota.reset_all.stopped", "quota.reset_all.interrupted",
 		"quota.reset", "secret.rotate", "storage.history_purge", "storage.policy_change",
@@ -381,6 +382,9 @@ func administrativeHistoryEvent(ts time.Time, action, subject string) (store.His
 		return store.HistoryEvent{}, false
 	}
 	severity := "info"
+	if action == "telemt.stop" || strings.HasSuffix(action, ".unconfirmed") {
+		severity = "warning"
+	}
 	if action == "user.delete" || action == "user.traffic_reset" || action == "user.ip_history_reset" || action == "traffic.reset" || action == "storage.history_purge" || action == "telemt.restart" || strings.HasPrefix(action, "quota.reset_all.") && action != "quota.reset_all.completed" || action == "quota.schedule.partial" || action == "quota.schedule.stopped" || action == "quota.schedule.interrupted" {
 		severity = "warning"
 	}
@@ -407,7 +411,7 @@ func auditTarget(action, subject string) string {
 	switch action {
 	case "config.patch", "config.patch.toml":
 		return "telemt.toml"
-	case "telemt.reload", "telemt.restart":
+	case "telemt.reload", "telemt.restart", "telemt.start", "telemt.stop", "telemt.start.unconfirmed", "telemt.stop.unconfirmed", "telemt.restart.unconfirmed":
 		return "telemt"
 	case "update.auto_change":
 		return "auto_update"
@@ -420,6 +424,10 @@ func auditTarget(action, subject string) string {
 
 func auditOutcome(action string) string {
 	switch action {
+	case "telemt.start", "telemt.stop":
+		return "accepted"
+	case "telemt.start.unconfirmed", "telemt.stop.unconfirmed", "telemt.restart.unconfirmed":
+		return "unknown"
 	case "quota.reset_all.started", "quota.schedule.started":
 		return "accepted"
 	case "quota.reset_all.partial", "quota.reset_all.stopped", "quota.schedule.partial", "quota.schedule.stopped":

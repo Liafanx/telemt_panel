@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib/cn";
 import { useStrings } from "../i18n";
@@ -18,6 +18,8 @@ export type SheetPlacement = "auto" | "bottom" | "side" | "modal" | "form" | "me
 export interface SheetProps {
   open: boolean;
   onClose: () => void;
+  /** Stable ref instead of child autoFocus, so the opener is captured first. */
+  initialFocusRef?: RefObject<HTMLElement | null>;
   title?: string;
   /** Optional compact label above the title (used by full task forms). */
   eyebrow?: string;
@@ -63,6 +65,7 @@ const FOCUSABLE =
 export function Sheet({
   open,
   onClose,
+  initialFocusRef,
   title,
   eyebrow,
   subtitle,
@@ -102,7 +105,10 @@ export function Sheet({
     previouslyFocused.current = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
     const firstFocusable = panel?.querySelector<HTMLElement>(FOCUSABLE);
-    firstFocusable?.focus();
+    const preferred = initialFocusRef?.current;
+    (preferred && panel?.contains(preferred) && preferred.matches(FOCUSABLE)
+      ? preferred
+      : firstFocusable)?.focus();
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -133,7 +139,7 @@ export function Sheet({
       document.body.style.overflow = previousOverflow;
       previouslyFocused.current?.focus();
     };
-  }, [open]);
+  }, [open, initialFocusRef]);
 
   if (!open) return null;
 

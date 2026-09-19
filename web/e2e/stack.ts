@@ -19,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // in-tree binary, while local development points at the isolated runtime so
 // build artefacts never have to enter the Git working tree.
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const PANEL_BINARY = process.env["TELEMT_PANEL_E2E_BINARY"] ?? path.join(REPO_ROOT, "telemt-panel");
+export const PANEL_BINARY = process.env["TELEMT_PANEL_E2E_BINARY"] ?? path.join(REPO_ROOT, "telemt-panel");
 
 export interface Stack {
   panel: ChildProcess;
@@ -163,7 +163,7 @@ export async function startStack(): Promise<Stack> {
   return { panel, mock, tmpDir };
 }
 
-function killAndWait(proc: ChildProcess): Promise<void> {
+export function killAndWait(proc: ChildProcess): Promise<void> {
   return new Promise((resolve) => {
     if (proc.exitCode !== null || proc.signalCode !== null) {
       resolve();

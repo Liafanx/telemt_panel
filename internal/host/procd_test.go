@@ -24,17 +24,23 @@ func TestProcd_Status_ExitCodes(t *testing.T) {
 	tests := []struct {
 		name    string
 		err     error
+		stderr  []byte
 		want    ServiceStatus
 		wantErr bool
 	}{
 		{name: "running (exit 0)", err: nil, want: StatusRunning},
 		{name: "stopped (exit 1)", err: &ExitError{Code: 1}, want: StatusStopped},
-		{name: "stopped (exit 3)", err: &ExitError{Code: 3}, want: StatusStopped},
+		{name: "unexpected exit", err: &ExitError{Code: 3}, want: StatusUnknown, wantErr: true},
+		{name: "cannot execute", err: &ExitError{Code: 126}, want: StatusUnknown, wantErr: true},
+		{name: "command missing", err: &ExitError{Code: 127}, want: StatusUnknown, wantErr: true},
+		{name: "signal termination", err: &ExitError{Code: -1}, want: StatusUnknown, wantErr: true},
+		{name: "timeout", err: context.DeadlineExceeded, want: StatusUnknown, wantErr: true},
+		{name: "ubus error", err: &ExitError{Code: 1}, stderr: []byte("Failed to connect to ubus"), want: StatusUnknown, wantErr: true},
 		{name: "script missing", err: errors.New("exec: no such file"), want: StatusUnknown, wantErr: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			r := &fakeRunner{err: tc.err}
+			r := &fakeRunner{err: tc.err, stderr: tc.stderr}
 			p := NewProcd(r.run)
 
 			got, err := p.Status(context.Background(), "telemt")

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, ServerSentEventsResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ApplyUpdateData, ApplyUpdateErrors, ApplyUpdateResponses, CloseTelemtWebSessionsData, CloseTelemtWebSessionsErrors, CloseTelemtWebSessionsResponses, CreateUserData, CreateUserErrors, CreateUserResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, GetAuditData, GetAuditErrors, GetAuditResponses, GetAuthMethodsData, GetAuthMethodsResponses, GetAutoUpdateData, GetAutoUpdateErrors, GetAutoUpdateResponses, GetBrandingIconData, GetBrandingIconResponses, GetBrandingLogoData, GetBrandingLogoErrors, GetBrandingLogoResponses, GetBrandingSettingsData, GetBrandingSettingsErrors, GetBrandingSettingsResponses, GetBulkQuotaResetData, GetBulkQuotaResetErrors, GetBulkQuotaResetResponses, GetGeoIpSettingsData, GetGeoIpSettingsErrors, GetGeoIpSettingsResponses, GetHealthData, GetHealthResponses, GetHistoryData, GetHistoryErrors, GetHistoryEventsData, GetHistoryEventsErrors, GetHistoryEventsResponses, GetHistoryResponses, GetHostData, GetHostResponses, GetMeData, GetMeErrors, GetMeResponses, GetPanelTlsConfigData, GetPanelTlsConfigErrors, GetPanelTlsConfigResponses, GetPanelTlsData, GetPanelTlsErrors, GetPanelTlsResponses, GetPublicBrandingData, GetPublicBrandingResponses, GetQuotaScheduleData, GetQuotaScheduleErrors, GetQuotaScheduleResponses, GetSnapshotData, GetSnapshotErrors, GetSnapshotResponses, GetStorageSettingsData, GetStorageSettingsResponses, GetSubscriptionPageData, GetSubscriptionPageErrors, GetSubscriptionPageResponses, GetTelemtConfigCatalogData, GetTelemtConfigCatalogResponses, GetTelemtConfigData, GetTelemtConfigErrors, GetTelemtConfigResponses, GetTelemtConfigTomlData, GetTelemtConfigTomlErrors, GetTelemtConfigTomlResponses, GetTelemtInfoData, GetTelemtInfoResponses, GetTelemtReloadStatusData, GetTelemtReloadStatusErrors, GetTelemtReloadStatusResponses, GetTelemtTlsFingerprintsData, GetTelemtTlsFingerprintsErrors, GetTelemtTlsFingerprintsResponses, GetTelemtWebAccessData, GetTelemtWebAccessErrors, GetTelemtWebAccessResponses, GetTelemtWebOperationData, GetTelemtWebOperationErrors, GetTelemtWebOperationResponses, GetTelemtWebSessionData, GetTelemtWebSessionErrors, GetTelemtWebSessionResponses, GetTelemtWebSessionsData, GetTelemtWebSessionsErrors, GetTelemtWebSessionsResponses, GetTelemtZeroData, GetTelemtZeroErrors, GetTelemtZeroResponses, GetTrafficSummaryData, GetTrafficSummaryErrors, GetTrafficSummaryResponses, GetTrafficUsersData, GetTrafficUsersErrors, GetTrafficUsersResponses, GetUpdatesData, GetUpdatesResponses, GetUserData, GetUserErrors, GetUserIpHistoryData, GetUserIpHistoryErrors, GetUserIpHistoryResponses, GetUserQuotaScheduleData, GetUserQuotaScheduleErrors, GetUserQuotaScheduleResponses, GetUserResponses, GetUserSublinkData, GetUserSublinkErrors, GetUserSublinkResponses, GetUserTrafficHistoryData, GetUserTrafficHistoryErrors, GetUserTrafficHistoryResponses, ListSessionsData, ListSessionsErrors, ListSessionsResponses, ListUsersData, ListUsersErrors, ListUsersResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutErrors, LogoutResponses, PatchTelemtConfigData, PatchTelemtConfigErrors, PatchTelemtConfigResponses, PatchTelemtConfigTomlData, PatchTelemtConfigTomlErrors, PatchTelemtConfigTomlResponses, PatchUserData, PatchUserErrors, PatchUserResponses, PrepareBulkQuotaResetData, PrepareBulkQuotaResetErrors, PrepareBulkQuotaResetResponses, PreparePanelTlsData, PreparePanelTlsErrors, PreparePanelTlsResponses, PreviewQuotaScheduleData, PreviewQuotaScheduleErrors, PreviewQuotaScheduleResponses, PreviewTelemtConfigTomlData, PreviewTelemtConfigTomlErrors, PreviewTelemtConfigTomlResponses, PurgeStorageHistoryData, PurgeStorageHistoryErrors, PurgeStorageHistoryResponses, PutAutoUpdateData, PutAutoUpdateErrors, PutAutoUpdateResponses, PutBrandingSettingsData, PutBrandingSettingsErrors, PutBrandingSettingsResponses, PutGeoIpSettingsData, PutGeoIpSettingsErrors, PutGeoIpSettingsResponses, PutPanelTlsConfigData, PutPanelTlsConfigErrors, PutPanelTlsConfigResponses, PutStorageSettingsData, PutStorageSettingsErrors, PutStorageSettingsResponses, PutTelemtUserWebAccessData, PutTelemtUserWebAccessErrors, PutTelemtUserWebAccessResponses, RegenerateUserSublinkData, RegenerateUserSublinkErrors, RegenerateUserSublinkResponses, ReloadTelemtData, ReloadTelemtErrors, ReloadTelemtResponses, ResetAllUserTrafficData, ResetAllUserTrafficErrors, ResetAllUserTrafficResponses, ResetUserIpHistoryData, ResetUserIpHistoryErrors, ResetUserIpHistoryResponses, ResetUserQuotaData, ResetUserQuotaErrors, ResetUserQuotaResponses, ResetUserTrafficData, ResetUserTrafficErrors, ResetUserTrafficResponses, RestartPanelTlsData, RestartPanelTlsErrors, RestartPanelTlsResponses, RestartTelemtServiceData, RestartTelemtServiceErrors, RestartTelemtServiceResponses, RevokeOtherSessionsData, RevokeOtherSessionsErrors, RevokeOtherSessionsResponses, RevokeSessionData, RevokeSessionErrors, RevokeSessionResponses, RotateUserSecretData, RotateUserSecretErrors, RotateUserSecretResponses, SaveQuotaScheduleData, SaveQuotaScheduleErrors, SaveQuotaScheduleResponses, SaveUserQuotaScheduleData, SaveUserQuotaScheduleErrors, SaveUserQuotaScheduleResponses, SetUserEnabledData, SetUserEnabledErrors, SetUserEnabledResponses, StartBulkQuotaResetData, StartBulkQuotaResetErrors, StartBulkQuotaResetResponses, StreamEventsData, StreamEventsErrors, StreamEventsResponse, StreamEventsResponses, StreamLogsData, StreamLogsErrors, StreamLogsResponse, StreamLogsResponses, TailLogsData, TailLogsErrors, TailLogsResponses, UpdateGeoIpData, UpdateGeoIpErrors, UpdateGeoIpResponses, WebauthnDeleteCredentialData, WebauthnDeleteCredentialErrors, WebauthnDeleteCredentialResponses, WebauthnLoginBeginData, WebauthnLoginBeginErrors, WebauthnLoginBeginResponses, WebauthnLoginFinishData, WebauthnLoginFinishErrors, WebauthnLoginFinishResponses, WebauthnRegisterBeginData, WebauthnRegisterBeginErrors, WebauthnRegisterBeginResponses, WebauthnRegisterFinishData, WebauthnRegisterFinishErrors, WebauthnRegisterFinishResponses } from './types.gen';
+import type { ApplyUpdateData, ApplyUpdateErrors, ApplyUpdateResponses, CloseTelemtWebSessionsData, CloseTelemtWebSessionsErrors, CloseTelemtWebSessionsResponses, CreateUserData, CreateUserErrors, CreateUserResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, GetAuditData, GetAuditErrors, GetAuditResponses, GetAuthMethodsData, GetAuthMethodsResponses, GetAutoUpdateData, GetAutoUpdateErrors, GetAutoUpdateResponses, GetBrandingIconData, GetBrandingIconResponses, GetBrandingLogoData, GetBrandingLogoErrors, GetBrandingLogoResponses, GetBrandingSettingsData, GetBrandingSettingsErrors, GetBrandingSettingsResponses, GetBulkQuotaResetData, GetBulkQuotaResetErrors, GetBulkQuotaResetResponses, GetGeoIpSettingsData, GetGeoIpSettingsErrors, GetGeoIpSettingsResponses, GetHealthData, GetHealthResponses, GetHistoryData, GetHistoryErrors, GetHistoryEventsData, GetHistoryEventsErrors, GetHistoryEventsResponses, GetHistoryResponses, GetHostData, GetHostResponses, GetLinkSettingsData, GetLinkSettingsErrors, GetLinkSettingsResponses, GetMeData, GetMeErrors, GetMeResponses, GetPanelTlsConfigData, GetPanelTlsConfigErrors, GetPanelTlsConfigResponses, GetPanelTlsData, GetPanelTlsErrors, GetPanelTlsResponses, GetPublicBrandingData, GetPublicBrandingResponses, GetQuotaScheduleData, GetQuotaScheduleErrors, GetQuotaScheduleResponses, GetSnapshotData, GetSnapshotErrors, GetSnapshotResponses, GetStorageSettingsData, GetStorageSettingsResponses, GetSubscriptionPageData, GetSubscriptionPageErrors, GetSubscriptionPageResponses, GetTelemtConfigCatalogData, GetTelemtConfigCatalogResponses, GetTelemtConfigData, GetTelemtConfigErrors, GetTelemtConfigResponses, GetTelemtConfigTomlData, GetTelemtConfigTomlErrors, GetTelemtConfigTomlResponses, GetTelemtInfoData, GetTelemtInfoResponses, GetTelemtReloadStatusData, GetTelemtReloadStatusErrors, GetTelemtReloadStatusResponses, GetTelemtServiceData, GetTelemtServiceResponses, GetTelemtTlsFingerprintsData, GetTelemtTlsFingerprintsErrors, GetTelemtTlsFingerprintsResponses, GetTelemtWebAccessData, GetTelemtWebAccessErrors, GetTelemtWebAccessResponses, GetTelemtWebOperationData, GetTelemtWebOperationErrors, GetTelemtWebOperationResponses, GetTelemtWebSessionData, GetTelemtWebSessionErrors, GetTelemtWebSessionResponses, GetTelemtWebSessionsData, GetTelemtWebSessionsErrors, GetTelemtWebSessionsResponses, GetTelemtZeroData, GetTelemtZeroErrors, GetTelemtZeroResponses, GetTrafficSummaryData, GetTrafficSummaryErrors, GetTrafficSummaryResponses, GetTrafficUsersData, GetTrafficUsersErrors, GetTrafficUsersResponses, GetUpdatesData, GetUpdatesResponses, GetUserData, GetUserErrors, GetUserIpHistoryData, GetUserIpHistoryErrors, GetUserIpHistoryResponses, GetUserQuotaScheduleData, GetUserQuotaScheduleErrors, GetUserQuotaScheduleResponses, GetUserResponses, GetUserSublinkData, GetUserSublinkErrors, GetUserSublinkResponses, GetUserTrafficHistoryData, GetUserTrafficHistoryErrors, GetUserTrafficHistoryResponses, ListSessionsData, ListSessionsErrors, ListSessionsResponses, ListUsersData, ListUsersErrors, ListUsersResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutErrors, LogoutResponses, PatchTelemtConfigData, PatchTelemtConfigErrors, PatchTelemtConfigResponses, PatchTelemtConfigTomlData, PatchTelemtConfigTomlErrors, PatchTelemtConfigTomlResponses, PatchUserData, PatchUserErrors, PatchUserResponses, PrepareBulkQuotaResetData, PrepareBulkQuotaResetErrors, PrepareBulkQuotaResetResponses, PreparePanelTlsData, PreparePanelTlsErrors, PreparePanelTlsResponses, PreviewQuotaScheduleData, PreviewQuotaScheduleErrors, PreviewQuotaScheduleResponses, PreviewTelemtConfigTomlData, PreviewTelemtConfigTomlErrors, PreviewTelemtConfigTomlResponses, PurgeStorageHistoryData, PurgeStorageHistoryErrors, PurgeStorageHistoryResponses, PutAutoUpdateData, PutAutoUpdateErrors, PutAutoUpdateResponses, PutBrandingSettingsData, PutBrandingSettingsErrors, PutBrandingSettingsResponses, PutGeoIpSettingsData, PutGeoIpSettingsErrors, PutGeoIpSettingsResponses, PutLinkSettingsData, PutLinkSettingsErrors, PutLinkSettingsResponses, PutPanelTlsConfigData, PutPanelTlsConfigErrors, PutPanelTlsConfigResponses, PutStorageSettingsData, PutStorageSettingsErrors, PutStorageSettingsResponses, PutTelemtUserWebAccessData, PutTelemtUserWebAccessErrors, PutTelemtUserWebAccessResponses, RegenerateUserSublinkData, RegenerateUserSublinkErrors, RegenerateUserSublinkResponses, ReloadTelemtData, ReloadTelemtErrors, ReloadTelemtResponses, ResetAllUserTrafficData, ResetAllUserTrafficErrors, ResetAllUserTrafficResponses, ResetUserIpHistoryData, ResetUserIpHistoryErrors, ResetUserIpHistoryResponses, ResetUserQuotaData, ResetUserQuotaErrors, ResetUserQuotaResponses, ResetUserTrafficData, ResetUserTrafficErrors, ResetUserTrafficResponses, RestartPanelTlsData, RestartPanelTlsErrors, RestartPanelTlsResponses, RestartTelemtServiceData, RestartTelemtServiceErrors, RestartTelemtServiceResponses, RevokeOtherSessionsData, RevokeOtherSessionsErrors, RevokeOtherSessionsResponses, RevokeSessionData, RevokeSessionErrors, RevokeSessionResponses, RotateUserSecretData, RotateUserSecretErrors, RotateUserSecretResponses, SaveQuotaScheduleData, SaveQuotaScheduleErrors, SaveQuotaScheduleResponses, SaveUserQuotaScheduleData, SaveUserQuotaScheduleErrors, SaveUserQuotaScheduleResponses, SetUserEnabledData, SetUserEnabledErrors, SetUserEnabledResponses, StartBulkQuotaResetData, StartBulkQuotaResetErrors, StartBulkQuotaResetResponses, StartTelemtServiceData, StartTelemtServiceErrors, StartTelemtServiceResponses, StopTelemtServiceData, StopTelemtServiceErrors, StopTelemtServiceResponses, StreamEventsData, StreamEventsErrors, StreamEventsResponse, StreamEventsResponses, StreamLogsData, StreamLogsErrors, StreamLogsResponse, StreamLogsResponses, TailLogsData, TailLogsErrors, TailLogsResponses, UpdateGeoIpData, UpdateGeoIpErrors, UpdateGeoIpResponses, WebauthnDeleteCredentialData, WebauthnDeleteCredentialErrors, WebauthnDeleteCredentialResponses, WebauthnLoginBeginData, WebauthnLoginBeginErrors, WebauthnLoginBeginResponses, WebauthnLoginFinishData, WebauthnLoginFinishErrors, WebauthnLoginFinishResponses, WebauthnRegisterBeginData, WebauthnRegisterBeginErrors, WebauthnRegisterBeginResponses, WebauthnRegisterFinishData, WebauthnRegisterFinishErrors, WebauthnRegisterFinishResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -29,6 +29,33 @@ export const getPublicBranding = <ThrowOnError extends boolean = false>(options?
 export const getBrandingLogo = <ThrowOnError extends boolean = false>(options?: Options<GetBrandingLogoData, ThrowOnError>): RequestResult<GetBrandingLogoResponses, GetBrandingLogoErrors, ThrowOnError> => (options?.client ?? client).get<GetBrandingLogoResponses, GetBrandingLogoErrors, ThrowOnError>({ url: '/api/branding/logo', ...options });
 
 export const getBrandingIcon = <ThrowOnError extends boolean = false>(options?: Options<GetBrandingIconData, ThrowOnError>): RequestResult<GetBrandingIconResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetBrandingIconResponses, unknown, ThrowOnError>({ url: '/api/branding/icon', ...options });
+
+export const getLinkSettings = <ThrowOnError extends boolean = false>(options?: Options<GetLinkSettingsData, ThrowOnError>): RequestResult<GetLinkSettingsResponses, GetLinkSettingsErrors, ThrowOnError> => (options?.client ?? client).get<GetLinkSettingsResponses, GetLinkSettingsErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'panel_session',
+            type: 'apiKey'
+        }],
+    url: '/api/settings/links',
+    ...options
+});
+
+/**
+ * Save in local panel state without restart. Only affects the address selector in a user's Access tab, never quick links, subscriptions or WEB profiles.
+ */
+export const putLinkSettings = <ThrowOnError extends boolean = false>(options: Options<PutLinkSettingsData, ThrowOnError>): RequestResult<PutLinkSettingsResponses, PutLinkSettingsErrors, ThrowOnError> => (options.client ?? client).put<PutLinkSettingsResponses, PutLinkSettingsErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'panel_session',
+            type: 'apiKey'
+        }],
+    url: '/api/settings/links',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 export const getBrandingSettings = <ThrowOnError extends boolean = false>(options?: Options<GetBrandingSettingsData, ThrowOnError>): RequestResult<GetBrandingSettingsResponses, GetBrandingSettingsErrors, ThrowOnError> => (options?.client ?? client).get<GetBrandingSettingsResponses, GetBrandingSettingsErrors, ThrowOnError>({
     security: [{
@@ -722,6 +749,45 @@ export const getTelemtReloadStatus = <ThrowOnError extends boolean = false>(opti
 });
 
 /**
+ * State of the configured service/container on the panel host, observed independently of the Telemt API. Unknown is not equivalent to stopped.
+ */
+export const getTelemtService = <ThrowOnError extends boolean = false>(options?: Options<GetTelemtServiceData, ThrowOnError>): RequestResult<GetTelemtServiceResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetTelemtServiceResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'panel_session',
+            type: 'apiKey'
+        }],
+    url: '/api/telemt/service',
+    ...options
+});
+
+/**
+ * Starts the configured Telemt service, not the panel. Requires explicit host rights; serialized with updates and manual service operations. Does not enable boot startup.
+ */
+export const startTelemtService = <ThrowOnError extends boolean = false>(options?: Options<StartTelemtServiceData, ThrowOnError>): RequestResult<StartTelemtServiceResponses, StartTelemtServiceErrors, ThrowOnError> => (options?.client ?? client).post<StartTelemtServiceResponses, StartTelemtServiceErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'panel_session',
+            type: 'apiKey'
+        }],
+    url: '/api/telemt/start',
+    ...options
+});
+
+/**
+ * Stops only the configured Telemt service/container. Does not disable boot startup, remove containers or delete data. No automatic retry after an unconfirmed result.
+ */
+export const stopTelemtService = <ThrowOnError extends boolean = false>(options?: Options<StopTelemtServiceData, ThrowOnError>): RequestResult<StopTelemtServiceResponses, StopTelemtServiceErrors, ThrowOnError> => (options?.client ?? client).post<StopTelemtServiceResponses, StopTelemtServiceErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'panel_session',
+            type: 'apiKey'
+        }],
+    url: '/api/telemt/stop',
+    ...options
+});
+
+/**
  * Service-level restart through the host layer (01-host-matrix.md), independent of the reload endpoints above — restarts the whole process rather than re-reading config. Disabled when host cap restart_telemt=false.
  *
  */
@@ -873,6 +939,9 @@ export const getUpdates = <ThrowOnError extends boolean = false>(options?: Optio
     ...options
 });
 
+/**
+ * Install an explicitly selected release. Panel targets accept only the 1.x line; legacy and other major versions are rejected before starting an operation.
+ */
 export const applyUpdate = <ThrowOnError extends boolean = false>(options: Options<ApplyUpdateData, ThrowOnError>): RequestResult<ApplyUpdateResponses, ApplyUpdateErrors, ThrowOnError> => (options.client ?? client).post<ApplyUpdateResponses, ApplyUpdateErrors, ThrowOnError>({
     security: [{
             in: 'cookie',

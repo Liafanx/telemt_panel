@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/amirotin/telemt_panel/internal/auth"
-	"github.com/amirotin/telemt_panel/internal/host"
 	"github.com/amirotin/telemt_panel/internal/telemt"
 )
 
@@ -289,26 +288,5 @@ func writeTelemtReloadError(w http.ResponseWriter, err error) {
 // config-reload endpoints above — this restarts the whole process (for a
 // binary update or a wedged process), not just a config re-read.
 func (s *Server) handleTelemtRestart(w http.ResponseWriter, r *http.Request) {
-	caps := s.svcMgr.Caps()
-	if !caps.CanRestart || s.privilegesMode == host.PrivilegesModeManual {
-		hint := caps.ManualRestartHint
-		if caps.CanRestart {
-			hint = manualRestartCommand(s.svcMgr.Kind(), s.telemtServiceName)
-		}
-		auth.WriteError(w, http.StatusServiceUnavailable, "manual_restart_required",
-			fmt.Sprintf("automatic restart is not available on this host: %s", hint))
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), telemtConfigRequestTimeout)
-	defer cancel()
-
-	if _, err := s.runner.Run(ctx, host.Op{Kind: host.OpRestartService, Args: map[string]string{
-		host.ArgService: s.telemtServiceName,
-	}}); err != nil {
-		auth.WriteError(w, http.StatusBadGateway, "internal_error", "restart failed: "+err.Error())
-		return
-	}
-	s.appendAudit(r, "telemt.restart", "", "")
-	w.WriteHeader(http.StatusAccepted)
+	s.handleServiceAction(w, r, "restart")
 }

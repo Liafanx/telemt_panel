@@ -1,34 +1,27 @@
 import { useState, type ReactNode } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ServerShell } from "../ServerShell";
 import { errorMessage, useStrings } from "../../i18n";
 import { cn } from "../../lib/cn";
 import { StatePill } from "../../ui/StatePill";
-import { Button } from "../../ui/Button";
 import { CopyField } from "../../ui/CopyField";
-import { ConfirmView } from "../../ui/ConfirmView";
 import { Sheet } from "../../ui/Sheet";
 import { Skeleton } from "../../ui/Skeleton";
 import { ErrorState } from "../../ui/ErrorState";
-import { pushToast } from "../../ui/Toast";
 import {
   IconActivity,
   IconChevronRight,
   IconJournal,
   IconPlatform,
   IconPower,
-  IconRefresh,
   IconServer,
-  IconTerminal,
   IconUpgrade,
 } from "../../ui/icons";
-import { apiErrorCode, apiErrorMessage } from "../../people/apiError";
+import { apiErrorCode } from "../../people/apiError";
 import { hostCapabilityCount } from "../hub.helpers";
 import { isCopyableHostCommand } from "./platform.helpers";
-import {
-  getHostOptions,
-  restartTelemtServiceMutation,
-} from "../../lib/api/generated/@tanstack/react-query.gen";
+import { getHostOptions } from "../../lib/api/generated/@tanstack/react-query.gen";
+import { TelemtServiceControl } from "./TelemtServiceControl";
 import type { HostInfo } from "../../lib/api/generated/types.gen";
 
 type CapKey = keyof HostInfo["caps"];
@@ -162,16 +155,6 @@ export function PlatformPage() {
   const copy = s.server.platform.view;
   const query = useQuery(getHostOptions());
   const [technicalOpen, setTechnicalOpen] = useState(false);
-  const [actionOpen, setActionOpen] = useState(false);
-
-  const restartMutation = useMutation({
-    ...restartTelemtServiceMutation(),
-    onSuccess: () => {
-      setActionOpen(false);
-      pushToast(s.server.platform.restarted, "ok");
-    },
-    onError: (err) => pushToast(apiErrorMessage(err, s), "error"),
-  });
 
   if (query.isPending) {
     return (
@@ -196,7 +179,6 @@ export function PlatformPage() {
   const summary = hostCapabilityCount(info.caps);
   const automated = summary.available === summary.total;
   const manualEntries = Object.entries(info.manual_commands ?? {}).filter(([, value]) => value.trim());
-  const restartInstruction = info.manual_commands?.["restart_telemt"];
 
   const managerLabels: Record<HostInfo["service_manager"], string> = {
     systemd: "systemd",
@@ -338,7 +320,7 @@ export function PlatformPage() {
                 title={copy.serviceGroup}
                 description={copy.serviceGroupDescription}
                 icon={<IconPower className="h-5 w-5" />}
-                keys={["restart_telemt", "restart_panel"]}
+                keys={["start_telemt", "stop_telemt", "restart_telemt", "restart_panel"]}
                 info={info}
                 labels={labels}
                 descriptions={descriptions}
@@ -369,25 +351,7 @@ export function PlatformPage() {
                 wide
               />
             </div>
-            <div className="flex flex-col items-stretch justify-between gap-3 border-t border-border px-4 py-4 sm:flex-row sm:items-center">
-              <span>
-                <strong className="block text-meta font-semibold text-text">
-                  {info.caps.restart_telemt ? copy.restartAvailableTitle : copy.restartManualTitle}
-                </strong>
-                <span className="mt-1 block text-micro text-text-muted">
-                  {info.caps.restart_telemt ? copy.restartAvailableNote : copy.restartManualNote}
-                </span>
-              </span>
-              <Button
-                variant={info.caps.restart_telemt ? "primary" : "secondary"}
-                onClick={() => setActionOpen(true)}
-                className="w-full sm:w-auto"
-                data-testid="platform-restart-action"
-              >
-                {info.caps.restart_telemt ? <IconRefresh className="h-4 w-4" /> : <IconTerminal className="h-4 w-4" />}
-                {info.caps.restart_telemt ? s.server.platform.restartTelemt : copy.showInstruction}
-              </Button>
-            </div>
+            <TelemtServiceControl />
           </section>
 
           <aside
@@ -475,39 +439,6 @@ export function PlatformPage() {
       </div>
 
       <TechnicalSheet open={technicalOpen} onClose={() => setTechnicalOpen(false)} info={info} />
-      <Sheet
-        open={actionOpen}
-        onClose={() => setActionOpen(false)}
-        eyebrow={info.caps.restart_telemt ? copy.confirmEyebrow : copy.manualEyebrow}
-        title={info.caps.restart_telemt ? copy.confirmTitle : s.server.platform.caps.restart_telemt}
-        subtitle={info.caps.restart_telemt ? copy.confirmSubtitle : copy.manualRestartSubtitle}
-      >
-        {info.caps.restart_telemt ? (
-          <ConfirmView
-            description={s.server.platform.restartConfirm}
-            confirmLabel={s.server.platform.restartTelemt}
-            danger
-            pending={restartMutation.isPending}
-            onCancel={() => setActionOpen(false)}
-            onConfirm={() => restartMutation.mutate({})}
-          />
-        ) : (
-          <div className="flex flex-col gap-4">
-            <p className="text-meta leading-relaxed text-text-muted">{copy.manualRestartDescription}</p>
-            {restartInstruction && isCopyableHostCommand(restartInstruction) ? (
-              <CopyField label={copy.command} value={restartInstruction} data-testid="platform-manual-restart" />
-            ) : restartInstruction ? (
-              <p className="rounded-xl bg-surface-2 px-4 py-3 text-meta leading-relaxed text-text-muted">
-                {restartInstruction}
-              </p>
-            ) : (
-              <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-meta text-text-muted">
-                {copy.noInstruction}
-              </p>
-            )}
-          </div>
-        )}
-      </Sheet>
     </ServerShell>
   );
 }

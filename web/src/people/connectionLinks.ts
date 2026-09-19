@@ -66,3 +66,32 @@ export function collectConnectionLinks(links: UserLinksWire, profiles: readonly 
 export function formatConnectionLink(link: ConnectionLink, format: LinkFormat): string {
   return format === "tme" && link.kind !== "web" ? link.url.replace(/^tg:\/\/proxy\?/, "https://t.me/proxy?") : link.url;
 }
+
+function connectionDomain(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  if (!raw || /[\s/:?#@%\\[\]]/.test(raw)) return null;
+  try {
+    const domain = new URL(`https://${raw}`).hostname.toLowerCase().replace(/\.$/, "");
+    if (domain.length > 253 || !domain.split(".").every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) return null;
+    return domain;
+  } catch { return null; }
+}
+
+// Read the config, not user.links.tls_domains: Telemt omits the latter
+// when EE is disabled, even though DD links can use the same endpoints.
+export function connectionAddressDomains(sections: Record<string, unknown> | undefined): string[] {
+  const censorship = sections?.["censorship"];
+  if (!censorship || typeof censorship !== "object" || !("tls_domains" in censorship) || !Array.isArray(censorship.tls_domains)) return [];
+  return [...new Set(censorship.tls_domains.map(connectionDomain).filter((host): host is string => host !== null))];
+}
+
+// Access-only projection. Never mutate the original links consumed by
+// quick-copy, subscription pages or WEB profiles.
+export function withConnectionAddress(link: ConnectionLink, host: string): ConnectionLink {
+  if (link.kind === "web") return link;
+  const domain = connectionDomain(host), url = proxyURL(link.url);
+  if (!domain || !url) return link;
+  url.searchParams.set("server", domain);
+  return { ...link, url: url.toString(), endpoint: `${domain}:${url.searchParams.get("port")}` };
+}

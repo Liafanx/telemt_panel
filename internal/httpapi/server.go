@@ -57,8 +57,10 @@ type Server struct {
 	// restart-after-install step (see New's telemtServiceName comment
 	// below), reused here for an admin-triggered restart with no update
 	// attached.
-	runner            host.Runner
-	telemtServiceName string
+	runner              host.Runner
+	telemtServiceName   string
+	serviceStartAllowed bool
+	serviceStopAllowed  bool
 	// logStreamHeartbeat is GET /api/events/logs' heartbeat period; defaults
 	// to logStreamHeartbeatInterval (logs_handler.go), overridable by tests
 	// in this package the same way svcMgr/logSrc are.
@@ -115,6 +117,9 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		StagingPrefix: stagingPrefix(cfg.DataDir),
 		Services:      allowedServiceNames(cfg.Host),
 	}
+	if serviceBindingsDiffer(svcMgr.Kind(), telemtServiceName, panelServiceName) {
+		allow.ControlServices = []string{telemtServiceName}
+	}
 
 	// Sudo is another transport for the same host operations, not a second
 	// updater. Its ServiceManager is constructed from the already-resolved
@@ -148,6 +153,15 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 		Allow: allow, ServiceManager: svcMgr, LogSource: logSrc,
 		SudoRunner: sudoRunner, SudoAvailable: sudoAvailable,
 	})
+	var startAllowed, stopAllowed bool
+	if privilegesMode == host.PrivilegesModeSudo && len(allow.ControlServices) != 0 {
+		policyRun := host.NewSudoPolicyCmdRunner(host.OSCmdRunner)
+		policyManager := host.NewServiceManager(svcMgr.Kind(), probe, policyRun)
+		policyRunner := host.NewSudoRunner(allow, policyManager, logSrc, policyRun)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		startAllowed, stopAllowed = host.ProbeServiceControls(ctx, policyRunner, telemtServiceName)
+		cancel()
+	}
 
 	telemtTarget := &update.TelemtTarget{
 		Client:       tc,
@@ -184,30 +198,32 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 	}
 
 	s := &Server{
-		access:             newPanelAccess(),
-		tlsManager:         paneltls.New(cfg.TLS, cfg.Listen),
-		subTLSManager:      paneltls.New(cfg.Subpage.TLS, cfg.Subpage.Listen),
-		cfg:                cfg,
-		tc:                 tc,
-		st:                 st,
-		hub:                hb,
-		limiter:            auth.NewLimiter(),
-		subSvc:             subpage.NewService(cfg.Subpage.Secret, cfg.Subpage.BasePath, st),
-		subIndex:           subpage.NewIndex(cfg.Subpage.Secret, tc, st),
-		subLimiter:         subpage.NewRateLimiter(),
-		version:            version,
-		svcMgr:             svcMgr,
-		logSrc:             logSrc,
-		logStreams:         newLogStreamRegistry(),
-		privilegesMode:     privilegesMode,
-		logStreamHeartbeat: logStreamHeartbeatInterval,
-		updateEngine:       updateEngine,
-		autoUpdater:        update.NewAutoUpdater(st, updateEngine),
-		geoip:              geoip.NewManager(cfg.DataDir, st),
-		branding:           appearance,
-		runner:             runner,
-		telemtServiceName:  telemtServiceName,
-		webUI:              webUI,
+		access:              newPanelAccess(),
+		tlsManager:          paneltls.New(cfg.TLS, cfg.Listen),
+		subTLSManager:       paneltls.New(cfg.Subpage.TLS, cfg.Subpage.Listen),
+		cfg:                 cfg,
+		tc:                  tc,
+		st:                  st,
+		hub:                 hb,
+		limiter:             auth.NewLimiter(),
+		subSvc:              subpage.NewService(cfg.Subpage.Secret, cfg.Subpage.BasePath, st),
+		subIndex:            subpage.NewIndex(cfg.Subpage.Secret, tc, st),
+		subLimiter:          subpage.NewRateLimiter(),
+		version:             version,
+		svcMgr:              svcMgr,
+		logSrc:              logSrc,
+		logStreams:          newLogStreamRegistry(),
+		privilegesMode:      privilegesMode,
+		logStreamHeartbeat:  logStreamHeartbeatInterval,
+		updateEngine:        updateEngine,
+		autoUpdater:         update.NewAutoUpdater(st, updateEngine),
+		geoip:               geoip.NewManager(cfg.DataDir, st),
+		branding:            appearance,
+		runner:              runner,
+		telemtServiceName:   telemtServiceName,
+		serviceStartAllowed: startAllowed,
+		serviceStopAllowed:  stopAllowed,
+		webUI:               webUI,
 	}
 	s.quotaResets = quotareset.New(tc, s.quotaResetEvent)
 	s.quotaSchedules = quotareset.NewScheduler(st, s.quotaResets)
@@ -366,6 +382,9 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/telemt/reload", protect(s.handleTelemtReload))
 	mux.Handle("GET /api/telemt/reload/{id}", protect(s.handleTelemtReloadStatus))
 	mux.Handle("POST /api/telemt/restart", protect(s.handleTelemtRestart))
+	mux.Handle("GET /api/telemt/service", protect(s.handleTelemtService))
+	mux.Handle("POST /api/telemt/start", protect(s.handleTelemtStart))
+	mux.Handle("POST /api/telemt/stop", protect(s.handleTelemtStop))
 	mux.Handle("GET /api/telemt/zero", protect(s.handleGetTelemtZero))
 	mux.Handle("GET /api/telemt/tls-fingerprints", protect(s.handleGetTelemtTLSFingerprints))
 	mux.Handle("GET /api/telemt/web/sessions", protect(s.handleGetTelemtWebSessions))
@@ -390,6 +409,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/branding/icon", s.handleBrandingAsset)
 	mux.Handle("GET /api/settings/branding", protect(s.handleGetBranding))
 	mux.Handle("PUT /api/settings/branding", protect(s.handlePutBranding))
+	mux.Handle("GET /api/settings/links", protect(s.handleGetLinkSettings))
+	mux.Handle("PUT /api/settings/links", protect(s.handlePutLinkSettings))
 	mux.Handle("GET /api/settings/storage", protect(s.handleGetStorageSettings))
 	mux.Handle("PUT /api/settings/storage", protect(s.handlePutStorageSettings))
 	mux.Handle("POST /api/settings/storage/purge", protect(s.handlePurgeStorageHistory))

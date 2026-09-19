@@ -11,8 +11,14 @@
 // three slots, English repeats the plural in the last two.
 import { geoipRu } from "./geoip.ru";
 import { quotaScheduleRu } from "./quotaSchedule.ru";
+import {releasePickerRu} from './releasePicker.ru';
+import {serviceControlRu} from './serviceControl.ru';
+import { linkAddressRu } from "./linkAddress.ru";
 
 export const ru = {
+  linkAddress: linkAddressRu,
+  serviceControl:serviceControlRu,
+  releasePicker:releasePickerRu,
   quotaSchedule: quotaScheduleRu,
   geoip: geoipRu,
   // The dictionary carries its own BCP-47 tag so a helper only ever needs
@@ -762,6 +768,7 @@ export const ru = {
       healthyOf: "{healthy} / {total} в норме",
       onAverage: "в среднем",
       empty: "Нет настроенных апстримов.",
+      unavailable: "Данные об апстримах недоступны",
       successRate: "Успешность подключения",
       checkedAgo: "проверен {seconds} с назад",
       more: "ещё {count}",
@@ -3377,6 +3384,8 @@ export const ru = {
       capsTitle: "Возможности",
       caps: {
         restart_telemt: "Перезапуск Telemt",
+        start_telemt: "Запуск Telemt",
+        stop_telemt: "Остановка Telemt",
         restart_panel: "Перезапуск панели",
         log_tail: "Хвост логов",
         log_stream: "Живые логи",
@@ -3418,6 +3427,8 @@ export const ru = {
         updatesGroupDescription: "Установка бинарников через подтверждённый системный путь",
         capDescriptions: {
           restart_telemt: "Перезапуск основного сервиса через менеджер хоста",
+          start_telemt: "Запуск службы Telemt независимо от доступности её API",
+          stop_telemt: "Остановка службы Telemt без удаления данных",
           restart_panel: "Перезапуск панели после установки новой версии",
           log_tail: "Чтение последних строк системного журнала",
           log_stream: "Непрерывное получение новых строк журнала",
@@ -3807,7 +3818,9 @@ export const ru = {
     capability_absent: "Эта версия Telemt не поддерживает данную функцию.",
     capability_unavailable: "Функция сейчас недоступна на этом сервере.",
     manual_restart_required: "Автоматический перезапуск недоступен — выполните команду вручную.",
-    update_locked: "Обновление уже выполняется.",
+    update_locked: "Выполняется другая операция с сервисом или обновлением.",
+    manual_service_control_required:"Автоматическое управление недоступно. Проверьте привязку службы и разрешения на эту команду.",
+    service_action_unconfirmed:"Результат команды не подтверждён. Проверьте состояние службы перед повтором.",
     sublink_unavailable: "Страница подписки отключена.",
     log_tail_unavailable: "Просмотр последних строк логов недоступен.",
     log_stream_unavailable: "Живые логи недоступны на этой платформе.",
@@ -3823,6 +3836,7 @@ export const ru = {
     quota_schedule_conflict: "Расписание изменилось. Загрузите актуальные настройки перед сохранением.",
     quota_schedule_storage: "Для автосброса нужно доступное постоянное хранилище технического состояния панели (data_dir). Проверьте диск и права записи.",
     quota_schedule_unavailable: "Состояние расписания или API квот Telemt недоступны. Автосброс приостановлен; проверьте подключение и журнал панели.",
+    update_version_unsupported:"Из этой панели можно устанавливать только версии панели 1.x. Переход на legacy или другую основную ветку не поддерживается.",
     invalid_webauthn_challenge: "Запрос passkey истёк или уже использован. Начните заново.",
     invalid_webauthn_response: "Не удалось проверить ответ устройства.",
     webauthn_credential_exists: "Этот passkey уже зарегистрирован.",
@@ -3891,6 +3905,7 @@ export const ru = {
   // journal/auditActions.test.ts's own list of backend call sites).
   auditActions: {
     "branding.settings_change": "Изменено оформление панели",
+    "links.settings_change": "Изменены настройки адресов в ссылках",
     "geoip.settings_change": "Изменены настройки географии IP",
     "geoip.update": "Запрошено обновление баз GeoIP",
     login: "Вход",
@@ -3921,6 +3936,11 @@ export const ru = {
     "config.patch": "Изменена конфигурация Telemt",
     "telemt.reload": "Перезагружена конфигурация Telemt",
     "telemt.restart": "Перезапущен Telemt",
+    "telemt.start": "Выполнена команда запуска Telemt",
+    "telemt.stop": "Выполнена команда остановки Telemt",
+    "telemt.start.unconfirmed": "Результат запуска Telemt не подтверждён",
+    "telemt.stop.unconfirmed": "Результат остановки Telemt не подтверждён",
+    "telemt.restart.unconfirmed": "Результат перезапуска Telemt не подтверждён",
     "update.apply": "Запущено обновление",
     "update.auto_change": "Изменены настройки авто-обновления",
     "web.sessions.close": "Закрыты WEB-сессии",

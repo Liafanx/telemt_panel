@@ -87,7 +87,7 @@ public_url = ""
 mode = "http"
 
 [host]
-# Service manager for status and restart operations, including updates.
+# Service manager for status, start/stop and restart operations, including updates.
 # "auto" (default) probes the host at startup.
 # service_manager = "auto" # auto | systemd | openrc | procd | sysvinit | docker | none
 # Where live logs are read from. "auto" (default) probes the host at

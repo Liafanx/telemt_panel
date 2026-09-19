@@ -97,6 +97,13 @@ export type QuotaResetOperation = {
     next_offset?: number;
 };
 
+export type LinkSettings = {
+    /**
+     * Allow explicit selection of a configured censorship.tls_domains value as the connection address in the Access tab. Does not modify Telemt configuration or TLS secrets.
+     */
+    allow_address_override: boolean;
+};
+
 export type BrandingConfig = {
     title: string;
     logo_mode: 'default' | 'custom' | 'hidden';
@@ -206,7 +213,7 @@ export type Error = {
      * Machine code. Panel codes actually emitted today (grepped from every WriteError call site): bad_request, invalid_credentials, rate_limited, session_expired, csrf_rejected, auth_disabled, internal_error, not_found, telemt_unreachable, capability_absent, capability_unavailable, manual_restart_required, update_locked, sublink_unavailable, log_tail_unavailable, log_stream_unavailable, log_source_error, invalid_webauthn_origin, invalid_webauthn_challenge, invalid_webauthn_response, webauthn_credential_exists, passkey_unavailable, quota_reset_busy, quota_confirmation_expired, quota_operation_unavailable, invalid_toml, invalid_config_path, config_unset_unsupported, no_changes, toml_projection_failed. capability_absent (501) vs capability_unavailable (503) are deliberately distinct, not aliases: capability_absent means the route itself doesn't exist on this Telemt build (a bare 404/405 with no error envelope — detected reactively, after attempting the call: rotate-secret, enable/disable, POST /api/telemt/reload, GET /api/telemt/reload/{id}); capability_unavailable means the route exists but the feature behind it is switched off on this Telemt — either known up front from the SDK's cached Capabilities probe (GET/PATCH /api/telemt/config, config_api) or reported by the response itself (GET /api/telemt/tls-fingerprints, whose enabled:false means runtime_edge_enabled is off; read from the response rather than probed so an unreachable Telemt still maps to 502 telemt_unreachable). Reserved for milestones not yet implemented: telemt_auth_failed (superseded on /api/telemt/info by a reachable:false body, not an error status — kept here for /api/telemt/config, M3). A well-formed Telemt *APIError whose status is 4xx and isn't otherwise mapped above is passed through verbatim with Telemt's own code — notably user_exists, last_user_forbidden, read_only, revision_conflict, reload_in_progress, reload_not_found, ambiguous_listeners (the latter two absent from Telemt's own documented error-code table but confirmed against its source, M3), plus any other code in Telemt's own set (07-telemt-sdk.md): bad_request, access_not_editable, section_not_editable, field_not_editable, unauthorized, forbidden, method_not_allowed, config_patch_not_atomic, payload_too_large, api_disabled, maestro_unavailable — except access_not_editable/section_not_editable/field_not_editable/ config_patch_not_atomic/ambiguous_listeners on PATCH /api/telemt/config, which the panel remaps to HTTP 422 regardless of Telemt's own status. The WEB group (Telemt >= 3.5.3, internal/telemt/types_web.go) adds web_runtime_mismatch, web_issuance_enabled, web_operation_in_progress, web_snapshot_busy, web_session_not_found, web_operation_not_found and unsupported_media_type; web_runtime_unavailable is listed because it is Telemt's own code, but the panel remaps it to capability_unavailable (rule R5) so the closed-capability gate is drawn instead of an error. Every code in this enum must carry a message in BOTH dictionaries — web/src/i18n/i18n.test.ts walks this list.
      *
      */
-    code: 'bad_request' | 'tls_invalid_candidate' | 'tls_manual_required' | 'tls_prepare_busy' | 'tls_prepare_unavailable' | 'tls_listener_unavailable' | 'tls_challenge_unavailable' | 'tls_cache_unavailable' | 'tls_certificate_invalid' | 'tls_certificate_untrusted' | 'tls_acquisition_failed' | 'tls_prepare_failed' | 'tls_prepare_timeout' | 'tls_config_changed' | 'tls_receipt_invalid' | 'tls_save_failed' | 'tls_restart_not_pending' | 'tls_restart_failed' | 'conflict' | 'confirmation_required' | 'invalid_credentials' | 'rate_limited' | 'session_expired' | 'csrf_rejected' | 'auth_disabled' | 'quota_reset_busy' | 'invalid_quota_schedule' | 'quota_schedule_conflict' | 'quota_schedule_storage' | 'quota_schedule_unavailable' | 'quota_confirmation_expired' | 'quota_operation_unavailable' | 'internal_error' | 'branding_invalid_title' | 'branding_invalid_mode' | 'branding_invalid_path' | 'branding_logo_unreadable' | 'branding_invalid_image' | 'not_found' | 'telemt_unreachable' | 'capability_absent' | 'capability_unavailable' | 'manual_restart_required' | 'update_locked' | 'sublink_unavailable' | 'log_tail_unavailable' | 'log_stream_unavailable' | 'log_source_error' | 'invalid_webauthn_origin' | 'invalid_webauthn_challenge' | 'invalid_webauthn_response' | 'webauthn_credential_exists' | 'passkey_unavailable' | 'telemt_auth_failed' | 'user_exists' | 'last_user_forbidden' | 'read_only' | 'revision_conflict' | 'invalid_toml' | 'invalid_config_path' | 'config_unset_unsupported' | 'no_changes' | 'toml_projection_failed' | 'reload_in_progress' | 'reload_not_found' | 'ambiguous_listeners' | 'access_not_editable' | 'section_not_editable' | 'field_not_editable' | 'unauthorized' | 'forbidden' | 'method_not_allowed' | 'config_patch_not_atomic' | 'payload_too_large' | 'api_disabled' | 'maestro_unavailable' | 'unsupported_media_type' | 'web_runtime_unavailable' | 'web_snapshot_busy' | 'web_runtime_mismatch' | 'web_issuance_enabled' | 'web_operation_in_progress' | 'web_session_not_found' | 'web_operation_not_found' | 'web_vhost_not_found' | 'web_profile_required';
+    code: 'bad_request' | 'tls_invalid_candidate' | 'tls_manual_required' | 'tls_prepare_busy' | 'tls_prepare_unavailable' | 'tls_listener_unavailable' | 'tls_challenge_unavailable' | 'tls_cache_unavailable' | 'tls_certificate_invalid' | 'tls_certificate_untrusted' | 'tls_acquisition_failed' | 'tls_prepare_failed' | 'tls_prepare_timeout' | 'tls_config_changed' | 'tls_receipt_invalid' | 'tls_save_failed' | 'tls_restart_not_pending' | 'tls_restart_failed' | 'conflict' | 'confirmation_required' | 'invalid_credentials' | 'rate_limited' | 'session_expired' | 'csrf_rejected' | 'auth_disabled' | 'quota_reset_busy' | 'invalid_quota_schedule' | 'quota_schedule_conflict' | 'quota_schedule_storage' | 'quota_schedule_unavailable' | 'quota_confirmation_expired' | 'quota_operation_unavailable' | 'internal_error' | 'branding_invalid_title' | 'branding_invalid_mode' | 'branding_invalid_path' | 'branding_logo_unreadable' | 'branding_invalid_image' | 'not_found' | 'telemt_unreachable' | 'capability_absent' | 'capability_unavailable' | 'manual_restart_required' | 'manual_service_control_required' | 'service_action_unconfirmed' | 'update_locked' | 'update_version_unsupported' | 'sublink_unavailable' | 'log_tail_unavailable' | 'log_stream_unavailable' | 'log_source_error' | 'invalid_webauthn_origin' | 'invalid_webauthn_challenge' | 'invalid_webauthn_response' | 'webauthn_credential_exists' | 'passkey_unavailable' | 'telemt_auth_failed' | 'user_exists' | 'last_user_forbidden' | 'read_only' | 'revision_conflict' | 'invalid_toml' | 'invalid_config_path' | 'config_unset_unsupported' | 'no_changes' | 'toml_projection_failed' | 'reload_in_progress' | 'reload_not_found' | 'ambiguous_listeners' | 'access_not_editable' | 'section_not_editable' | 'field_not_editable' | 'unauthorized' | 'forbidden' | 'method_not_allowed' | 'config_patch_not_atomic' | 'payload_too_large' | 'api_disabled' | 'maestro_unavailable' | 'unsupported_media_type' | 'web_runtime_unavailable' | 'web_snapshot_busy' | 'web_runtime_mismatch' | 'web_issuance_enabled' | 'web_operation_in_progress' | 'web_session_not_found' | 'web_operation_not_found' | 'web_vhost_not_found' | 'web_profile_required';
     message: string;
 };
 
@@ -700,6 +707,14 @@ export type HostInfo = {
         log_tail: boolean;
         log_stream: boolean;
         self_update: boolean;
+        /**
+         * Independently permitted start of the configured Telemt service.
+         */
+        start_telemt?: boolean;
+        /**
+         * Independently permitted stop of the configured Telemt service.
+         */
+        stop_telemt?: boolean;
     };
     /**
      * Copyable shell commands or actionable manual instructions for operations with cap=false.
@@ -709,11 +724,39 @@ export type HostInfo = {
     };
 };
 
+export type TelemtServiceState = {
+    service: string;
+    manager: string;
+    status: 'running' | 'stopped' | 'unknown';
+    status_supported: boolean;
+    status_error?: 'service_status_unavailable';
+    /**
+     * The configured start/stop target collides with the panel binding.
+     */
+    binding_conflict: boolean;
+    /**
+     * Shared host lock is held by a service command or an update.
+     */
+    busy: boolean;
+    caps: {
+        start: boolean;
+        stop: boolean;
+        restart: boolean;
+    };
+    manual_commands: {
+        [key: string]: string;
+    };
+};
+
 export type UpdatesStatus = {
     lock_held: boolean;
     targets: Array<{
         target: 'telemt' | 'panel';
         current_version: string;
+        /**
+         * Release lookup failed. An empty releases array with this field is not evidence that the installed version is current.
+         */
+        releases_error?: 'update_catalog_unavailable';
         releases: Array<{
             version: string;
             published_at: string;
@@ -1262,6 +1305,72 @@ export type GetBrandingIconResponses = {
 };
 
 export type GetBrandingIconResponse = GetBrandingIconResponses[keyof GetBrandingIconResponses];
+
+export type GetLinkSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/settings/links';
+};
+
+export type GetLinkSettingsErrors = {
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+};
+
+export type GetLinkSettingsError = GetLinkSettingsErrors[keyof GetLinkSettingsErrors];
+
+export type GetLinkSettingsResponses = {
+    /**
+     * Panel-wide link presentation settings; disabled by default.
+     */
+    200: LinkSettings;
+};
+
+export type GetLinkSettingsResponse = GetLinkSettingsResponses[keyof GetLinkSettingsResponses];
+
+export type PutLinkSettingsData = {
+    body: LinkSettings;
+    path?: never;
+    query?: never;
+    url: '/api/settings/links';
+};
+
+export type PutLinkSettingsErrors = {
+    /**
+     * Invalid input
+     */
+    400: Error;
+    /**
+     * No valid session
+     */
+    401: Error;
+    /**
+     * CSRF rejected
+     */
+    403: Error;
+    /**
+     * Internal panel error
+     */
+    500: Error;
+};
+
+export type PutLinkSettingsError = PutLinkSettingsErrors[keyof PutLinkSettingsErrors];
+
+export type PutLinkSettingsResponses = {
+    /**
+     * Saved link presentation settings
+     */
+    200: LinkSettings;
+};
+
+export type PutLinkSettingsResponse = PutLinkSettingsResponses[keyof PutLinkSettingsResponses];
 
 export type GetBrandingSettingsData = {
     body?: never;
@@ -3119,6 +3228,84 @@ export type GetTelemtReloadStatusResponses = {
 
 export type GetTelemtReloadStatusResponse = GetTelemtReloadStatusResponses[keyof GetTelemtReloadStatusResponses];
 
+export type GetTelemtServiceData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/telemt/service';
+};
+
+export type GetTelemtServiceResponses = {
+    /**
+     * Service state and independently checked operation capabilities.
+     */
+    200: TelemtServiceState;
+};
+
+export type GetTelemtServiceResponse = GetTelemtServiceResponses[keyof GetTelemtServiceResponses];
+
+export type StartTelemtServiceData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/telemt/start';
+};
+
+export type StartTelemtServiceErrors = {
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    409: Error;
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    502: Error;
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    503: Error;
+};
+
+export type StartTelemtServiceError = StartTelemtServiceErrors[keyof StartTelemtServiceErrors];
+
+export type StartTelemtServiceResponses = {
+    /**
+     * Start command completed; re-read service state rather than assuming readiness.
+     */
+    202: unknown;
+};
+
+export type StopTelemtServiceData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/telemt/stop';
+};
+
+export type StopTelemtServiceErrors = {
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    409: Error;
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    502: Error;
+    /**
+     * Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+     */
+    503: Error;
+};
+
+export type StopTelemtServiceError = StopTelemtServiceErrors[keyof StopTelemtServiceErrors];
+
+export type StopTelemtServiceResponses = {
+    /**
+     * Stop command completed; re-read service state to observe the result.
+     */
+    202: unknown;
+};
+
 export type RestartTelemtServiceData = {
     body?: never;
     path?: never;
@@ -3127,6 +3314,10 @@ export type RestartTelemtServiceData = {
 };
 
 export type RestartTelemtServiceErrors = {
+    /**
+     * update_locked — another service or update operation is running
+     */
+    409: Error;
     /**
      * internal_error — the restart op itself failed
      */

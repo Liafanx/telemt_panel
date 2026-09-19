@@ -3,7 +3,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useStrings } from "../../i18n";
 import { Button } from "../../ui/Button";
 import { CopyField } from "../../ui/CopyField";
-import { ConfirmView } from "../../ui/ConfirmView";
 import { Sheet } from "../../ui/Sheet";
 import { StatePill } from "../../ui/StatePill";
 import { IconServer, IconTelegram } from "../../ui/icons";
@@ -16,7 +15,8 @@ import type {
 } from "../../lib/api/generated/types.gen";
 import type { UpdateTopicEvent } from "../../realtime/topics";
 import { Notice } from "../Notice";
-import { pickLatestRelease } from "./releases.helpers";
+import { pickLatestRelease,type ReleaseItem } from "./releases.helpers";
+import {ReleasePicker,ReleaseConfirmation} from './ReleasePicker';
 import { isTerminalUpdatePhase, type UpdatePhase } from "./updatePhase.helpers";
 import { UpdateStepper } from "./UpdateStepper";
 import { usePanelRestartWatch } from "./usePanelRestartWatch";
@@ -33,6 +33,7 @@ export interface UpdateTargetProps {
   sseEvent: UpdateTopicEvent | null;
   streamFallback: boolean;
   onApplied: () => void;
+  refreshing?:boolean;
 }
 
 // One target is a row in the shared version surface. Progress and failures
@@ -47,15 +48,20 @@ export function UpdateTarget({
   sseEvent,
   streamFallback,
   onApplied,
+  refreshing=false,
 }: UpdateTargetProps) {
   const s = useStrings();
-  const [confirming, setConfirming] = useState(false);
+  const t=s.releasePicker;
+  const [pickerOpen,setPickerOpen]=useState(false);
+  const [picked,setPicked]=useState<{version:string;from:string;newer:boolean}|null>(null);
+  const [confirming,setConfirming]=useState<{release:ReleaseItem;from:string}|null>(null);
   const [capabilityOpen, setCapabilityOpen] = useState(false);
 
   const applyMutation = useMutation({
     ...applyUpdateMutation(),
     onSuccess: () => {
-      setConfirming(false);
+      setConfirming(null);
+      setPicked(null);
       onApplied();
     },
     onError: (err) => pushToast(apiErrorMessage(err, s), "error"),
@@ -67,7 +73,11 @@ export function UpdateTarget({
   const phase = activeRun?.phase as UpdatePhase | undefined;
   const runIsActive = Boolean(phase && !isTerminalUpdatePhase(phase));
   const canApply = hostCaps?.self_update ?? false;
-  const otherRunBlocking = lockHeld && !runIsActive;
+  const catalogError=!!data.releases_error;
+  const blocked=lockHeld||runIsActive||applyMutation.isPending||refreshing;
+  const selected=picked&&picked.from===data.current_version?data.releases.find(r=>r.version===picked.version&&Boolean(r.newer)===picked.newer):undefined;
+  const validSelection=!!selected&&!catalogError;
+  const confirmationChanged=!validSelection||confirming?.from!==data.current_version||confirming?.release.version!==selected?.version||Boolean(confirming?.release.prerelease)!==Boolean(selected?.prerelease);
 
   const restarting = target === "panel" && phase === "restarting";
   const restartWatch = usePanelRestartWatch(
@@ -78,84 +88,47 @@ export function UpdateTarget({
     if (restartWatch.status === "reload") window.location.reload();
   }, [restartWatch.status]);
 
-  const shownLatest = latest?.version ?? data.current_version;
   const TargetIcon = target === "telemt" ? IconTelegram : IconServer;
 
   return (
-    <article className="border-b border-border last:border-b-0">
-      <div className="grid min-h-[92px] grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 sm:min-h-[72px] sm:grid-cols-[40px_minmax(6rem,.55fr)_minmax(13rem,1fr)_auto_auto] sm:gap-x-4">
+    <article className="uv-target" data-update-target={target}>
+      <div className="uv-row">
         <span className={`grid h-10 w-10 place-items-center rounded-xl ${target === "telemt" ? "bg-ok/10 text-ok" : "bg-accent/10 text-accent"}`} aria-hidden="true">
           <TargetIcon />
         </span>
 
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold text-text">
+        <div className="uv-name">
+          <h3>
             {s.server.updates.targetNames[target]}
-          </p>
-          <p className="mt-0.5 hidden text-micro text-text-faint sm:block">
+          </h3>
+          <p>
             {target === "telemt"
               ? s.server.updates.telemtDescription
               : s.server.updates.panelDescription}
           </p>
         </div>
 
-        <div className="col-span-2 col-start-2 row-start-2 grid min-w-0 grid-cols-[minmax(0,auto)_28px_minmax(0,1fr)] items-center gap-2 sm:col-auto sm:row-auto sm:grid-cols-[minmax(0,auto)_38px_minmax(0,1fr)]">
-          <Version label={s.server.updates.installedVersion} value={data.current_version} />
-          <span className={`relative h-px bg-border-strong ${latest ? "after:absolute after:right-0 after:top-[-2px] after:h-[5px] after:w-[5px] after:rotate-45 after:border-r after:border-t after:border-text-faint" : "opacity-40"}`} aria-hidden="true" />
-          <Version
-            label={latest ? s.server.updates.availableVersion : s.server.updates.latestInstalledVersion}
-            value={shownLatest}
-          />
+        <div className="uv-installed"><span>{t.installed}</span><strong>{data.current_version||'—'}</strong></div>
+        <div className="uv-state">
+          {catalogError&&!runIsActive?<StatePill state="warn">{t.partialCatalog}</StatePill>:<TargetState phase={phase} hasUpdate={Boolean(latest)} />}
+          {latest&&!catalogError&&<small>{t.latest} {latest.version}</small>}
         </div>
-
-        <div className="col-start-3 row-start-1 justify-self-end sm:col-auto sm:row-auto">
-          <TargetState phase={phase} hasUpdate={Boolean(latest)} />
-        </div>
-
-        {latest && !runIsActive && (
-          <div className="col-span-3 row-start-3 sm:col-auto sm:row-auto">
-            {canApply ? (
-              <Button
-                variant={otherRunBlocking ? "secondary" : "primary"}
-                size="sm"
-                disabled={otherRunBlocking || applyMutation.isPending}
-                onClick={() => setConfirming(true)}
-                className="w-full whitespace-nowrap sm:w-auto"
-              >
-                {otherRunBlocking
-                  ? s.server.updates.waiting
-                  : s.server.updates.update}
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setCapabilityOpen(true)}
-                className="w-full whitespace-nowrap sm:w-auto"
-              >
-                {s.server.updates.howToUpdate}
-              </Button>
-            )}
-          </div>
-        )}
+        {catalogError?<Button variant="secondary" className="uv-choose" disabled={refreshing||runIsActive} onClick={onApplied}>{s.common.retry}</Button>:<Button variant="secondary" className="uv-choose" disabled={blocked||data.releases.length===0} onClick={()=>setPickerOpen(true)}>{t.choose}<span aria-hidden="true">⌄</span></Button>}
       </div>
-
-      {confirming && latest && (
-        <div className="border-t border-border bg-surface-sunken px-4 py-3 sm:pl-[4.5rem]">
-          <ConfirmView
-            description={`${s.server.updates.confirmPrefix} ${latest.version}?`}
-            confirmLabel={s.server.updates.update}
-            pending={applyMutation.isPending}
-            onCancel={() => setConfirming(false)}
-            onConfirm={() =>
-              applyMutation.mutate({
-                path: { target },
-                body: { version: latest.version },
-              })
-            }
-          />
+      {catalogError&&<p className="uv-row-note text-warn" role="alert">{t.catalogError}</p>}
+      {!catalogError&&!data.releases.length&&<p className="uv-row-note">{t.empty}</p>}
+      {picked&&<div className={`uv-selection ${picked.newer?'':'older'}`}>
+        <div><small>{picked.newer?t.update:t.downgrade}</small><p><strong>{picked.from||'—'}</strong><span className="uv-arrow" aria-hidden="true">→</span><strong>{picked.version}</strong>{selected?.prerelease&&<span className="uv-prerelease">{t.pre}</span>}</p></div>
+        <div className="uv-selected-actions">
+          <Button variant="secondary" size="sm" disabled={applyMutation.isPending} onClick={()=>setPicked(null)}>{t.reset}</Button>
+          {canApply?<Button className={picked.newer?'':'uv-downgrade-button'} disabled={blocked||!validSelection||!data.current_version} onClick={()=>{if(selected){applyMutation.reset();setConfirming({release:selected,from:data.current_version});}}}>{t.continue}<span aria-hidden="true"> →</span></Button>:<span className="text-meta text-text-muted">{t.manualShort}</span>}
         </div>
-      )}
+      </div>}
+      {picked&&!validSelection&&<p className="uv-row-note text-warn" role="alert">{t.changed}</p>}
+      {!data.current_version&&<p className="uv-row-note text-warn">{t.unknownCurrent}</p>}
+      {!canApply&&<div className="uv-row-note"><p>{t.manual}</p><Button variant="secondary" size="sm" className="mt-2" onClick={()=>setCapabilityOpen(true)}>{s.server.updates.howToUpdate}</Button></div>}
+      {pickerOpen&&<ReleasePicker target={target} current={data.current_version} releases={data.releases} selected={picked?.version??null} blocked={blocked} error={catalogError} onChoose={release=>{setPicked({version:release.version,from:data.current_version,newer:!!release.newer});setPickerOpen(false);}} onClose={()=>setPickerOpen(false)}/>}
+      {confirming&&<ReleaseConfirmation target={target} current={confirming.from} release={confirming.release} blocked={blocked||!canApply} changed={confirmationChanged} pending={applyMutation.isPending} error={applyMutation.error?apiErrorMessage(applyMutation.error,s):null} onClose={()=>setConfirming(null)} onConfirm={()=>{if(selected&&!confirmationChanged&&!blocked&&canApply&&data.current_version)applyMutation.mutate({path:{target},body:{version:selected.version}});}}/>}
 
       {activeRun && (
         <div className="border-t border-border bg-surface-sunken px-4 py-3 sm:pl-[4.5rem]">
@@ -222,19 +195,6 @@ export function UpdateTarget({
   );
 }
 
-function Version({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="min-w-0">
-      <span className="block truncate text-[9px] uppercase tracking-wide text-text-faint">
-        {label}
-      </span>
-      <strong className="mt-0.5 block truncate font-mono text-[14px] tabular-nums text-text">
-        {value}
-      </strong>
-    </span>
-  );
-}
-
 function TargetState({
   phase,
   hasUpdate,
@@ -263,5 +223,5 @@ function TargetState({
       </StatePill>
     );
   }
-  return <StatePill state="ok">{s.server.updates.current}</StatePill>;
+  return <StatePill state="muted">{s.releasePicker.noNewer}</StatePill>;
 }

@@ -26,6 +26,16 @@ func NewDocker(runner CmdRunner) *Docker {
 // Kind implements ServiceManager.
 func (d *Docker) Kind() string { return KindDocker }
 
+// Start starts an existing configured container; it does not create one.
+func (d *Docker) Start(ctx context.Context, container string) error {
+	return serviceCommand(ctx, d.run, "docker", "start", container)
+}
+
+// Stop stops the configured container without removing it or its volumes.
+func (d *Docker) Stop(ctx context.Context, container string) error {
+	return serviceCommand(ctx, d.run, "docker", "stop", container)
+}
+
 // Status implements ServiceManager via
 // `docker inspect -f {{.State.Status}} <container>`. "restarting" is
 // mid-cycle — neither reliably up nor down — so it maps to StatusUnknown,
@@ -37,7 +47,7 @@ func (d *Docker) Status(ctx context.Context, container string) (ServiceStatus, e
 	switch strings.TrimSpace(string(out)) {
 	case "running":
 		return StatusRunning, nil
-	case "exited", "dead", "created", "paused":
+	case "exited", "dead", "created":
 		return StatusStopped, nil
 	case "":
 		if runErr != nil {

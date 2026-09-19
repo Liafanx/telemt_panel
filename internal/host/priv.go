@@ -18,6 +18,9 @@ const (
 	// OpRestartService restarts a managed service. Args: "service" (must
 	// be allow-listed).
 	OpRestartService = "restart-service"
+	// OpStartService and OpStopService affect only explicitly allowed control targets.
+	OpStartService = "start-service"
+	OpStopService  = "stop-service"
 	// OpReadJournal tails a service's log. Args: "service" (must be
 	// allow-listed), "lines" (bounded positive integer, as a string).
 	OpReadJournal = "read-journal"

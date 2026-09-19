@@ -199,6 +199,56 @@ func TestHandleGetUpdates_ReturnsBothTargets(t *testing.T) {
 	}
 }
 
+func TestUpdateCatalogFailureIsNotAnEmptySuccessfulCheck(t *testing.T) {
+	srv, cookie, _ := newUpdatesTestServer(t, &hosttest.Runner{}, "1.0.0")
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	defer failing.Close()
+	gh := update.NewClient()
+	gh.BaseURL = failing.URL
+	srv.updateEngine = update.NewEngine(update.EngineConfig{Runner: &hosttest.Runner{}, Store: srv.st, Github: gh, Targets: map[string]update.Target{
+		update.TargetPanel: &update.PanelTarget{Version_: "1.0.0", RepoName: "owner/panel"},
+	}})
+	r := httptest.NewRequest("GET", "/api/updates", nil)
+	r.AddCookie(cookie)
+	w := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(w, r)
+	var body struct {
+		Targets []struct {
+			Target  string `json:"target"`
+			Current string `json:"current_version"`
+			Error   string `json:"releases_error"`
+		}
+	}
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &body) != nil {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	for _, target := range body.Targets {
+		if target.Target == "panel" && (target.Error != "update_catalog_unavailable" || target.Current != "1.0.0") {
+			t.Fatalf("missing partial catalog failure: %+v", target)
+		}
+	}
+}
+
+func TestApplyPanelRejectsLegacyBeforeAcceptingOperation(t *testing.T) {
+	runner := &hosttest.Runner{}
+	srv, cookie, engine := newUpdatesTestServer(t, runner, "1.0.0")
+	w := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(w, mutatingJSON(t, "POST", "/api/updates/panel/apply", cookie, applyUpdateRequest{Version: "v0.6.2"}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want rejected legacy: %s", w.Code, w.Body)
+	}
+	var body map[string]string
+	json.Unmarshal(w.Body.Bytes(), &body)
+	if body["code"] != "update_version_unsupported" {
+		t.Fatal(body)
+	}
+	if engine.LockHeld() {
+		t.Fatal("rejected request started an operation")
+	}
+}
+
 func TestHandleApplyUpdate_AcceptsThenLocksOutASecondRun(t *testing.T) {
 	release := make(chan struct{})
 	runner := &hosttest.Runner{RunFunc: func(op host.Op) (host.Output, error) {

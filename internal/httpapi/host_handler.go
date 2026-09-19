@@ -20,6 +20,8 @@ const selfUpdateHint = "binary updates are unavailable because the installation 
 
 // hostCaps mirrors openapi HostInfo.caps.
 type hostCaps struct {
+	StartTelemt   bool `json:"start_telemt"`
+	StopTelemt    bool `json:"stop_telemt"`
 	RestartTelemt bool `json:"restart_telemt"`
 	RestartPanel  bool `json:"restart_panel"`
 	LogTail       bool `json:"log_tail"`
@@ -60,6 +62,16 @@ func (s *Server) handleHost(w http.ResponseWriter, r *http.Request) {
 	restartAvailable := restartCaps.CanRestart && privilegedOps
 
 	manual := map[string]string{}
+	controlCaps := s.serviceCaps()
+	panelName, _ := resolveLogicalService("panel", s.svcMgr.Kind(), s.cfg.Host)
+	if serviceBindingsDiffer(s.svcMgr.Kind(), s.telemtServiceName, panelName) {
+		if !controlCaps.Start {
+			manual["start_telemt"] = manualServiceCommand(s.svcMgr.Kind(), s.telemtServiceName, "start")
+		}
+		if !controlCaps.Stop {
+			manual["stop_telemt"] = manualServiceCommand(s.svcMgr.Kind(), s.telemtServiceName, "stop")
+		}
+	}
 	if !restartAvailable {
 		telemtHint := restartCaps.ManualRestartHint
 		panelHint := restartCaps.ManualRestartHint
@@ -94,6 +106,8 @@ func (s *Server) handleHost(w http.ResponseWriter, r *http.Request) {
 		ActiveStore:      s.st.Info().Driver,
 		HistoryTemporary: strings.EqualFold(strings.TrimSpace(s.cfg.Store.Driver), "sqlite") && s.st.Driver() == "memory",
 		Caps: hostCaps{
+			StartTelemt:   controlCaps.Start,
+			StopTelemt:    controlCaps.Stop,
 			RestartTelemt: restartAvailable,
 			RestartPanel:  restartAvailable,
 			LogTail:       logCaps.CanTail,

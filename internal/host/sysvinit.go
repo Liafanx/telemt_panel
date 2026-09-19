@@ -21,6 +21,16 @@ func NewSysvinit(runner CmdRunner) *Sysvinit {
 // Kind implements ServiceManager.
 func (s *Sysvinit) Kind() string { return KindSysvinit }
 
+// Start invokes the configured init script's start action.
+func (s *Sysvinit) Start(ctx context.Context, service string) error {
+	return serviceCommand(ctx, s.run, "/etc/init.d/"+service, "start")
+}
+
+// Stop invokes the configured init script's stop action.
+func (s *Sysvinit) Stop(ctx context.Context, service string) error {
+	return serviceCommand(ctx, s.run, "/etc/init.d/"+service, "stop")
+}
+
 // Status implements ServiceManager. Plain SysV init scripts don't
 // reliably support a `status` action (some no-op, some vary the exit
 // code's meaning by script author), so this always reports StatusUnknown

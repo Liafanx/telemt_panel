@@ -20,6 +20,16 @@ func NewSystemd(runner CmdRunner) *Systemd {
 // Kind implements ServiceManager.
 func (s *Systemd) Kind() string { return KindSystemd }
 
+// Start starts the configured service without enabling it at boot.
+func (s *Systemd) Start(ctx context.Context, service string) error {
+	return serviceCommand(ctx, s.run, "systemctl", "start", service)
+}
+
+// Stop stops the configured service without disabling it at boot.
+func (s *Systemd) Stop(ctx context.Context, service string) error {
+	return serviceCommand(ctx, s.run, "systemctl", "stop", service)
+}
+
 // Status implements ServiceManager via `systemctl is-active`. systemctl
 // exits nonzero for every state but "active", so the state is read from
 // stdout, not the exit code.

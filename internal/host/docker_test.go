@@ -32,7 +32,7 @@ func TestDocker_Status(t *testing.T) {
 		{name: "running", stdout: "running\n", want: StatusRunning},
 		{name: "exited", stdout: "exited\n", want: StatusStopped},
 		{name: "dead", stdout: "dead\n", want: StatusStopped},
-		{name: "paused", stdout: "paused\n", want: StatusStopped},
+		{name: "paused", stdout: "paused\n", want: StatusUnknown},
 		{name: "restarting", stdout: "restarting\n", want: StatusUnknown},
 		{name: "unrecognized", stdout: "removing\n", want: StatusUnknown},
 		{name: "no such container", stdout: "", runErr: errors.New("no such object"), want: StatusUnknown, wantErr: true},

@@ -29,6 +29,8 @@ func NewSudoRunner(allow AllowLists, svcMgr ServiceManager, logSrc LogSource, ru
 // the same helpers ExecOp uses before a command is spawned.
 func (r *SudoRunner) Run(ctx context.Context, op Op) (Output, error) {
 	switch op.Kind {
+	case OpStartService, OpStopService:
+		return execServiceControl(ctx, op, r.allow, r.svcMgr)
 	case OpInstallBinary:
 		src, err := requireWithinPrefix(op, ArgStaging, r.allow.StagingPrefix)
 		if err != nil {

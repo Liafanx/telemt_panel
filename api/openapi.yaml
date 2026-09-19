@@ -75,6 +75,37 @@ paths:
           content:
             image/png: { schema: { type: string, format: binary } }
         "304": { description: Icon unchanged }
+  /api/settings/links:
+    get:
+      tags: [misc]
+      operationId: getLinkSettings
+      responses:
+        "200":
+          description: Panel-wide link presentation settings; disabled by default.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LinkSettings" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    put:
+      tags: [misc]
+      operationId: putLinkSettings
+      description: Save in local panel state without restart. Only affects the address selector in a user's Access tab, never quick links, subscriptions or WEB profiles.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LinkSettings" }
+      responses:
+        "200":
+          description: Saved link presentation settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LinkSettings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: CSRF rejected, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { $ref: "#/components/responses/InternalError" }
   /api/settings/branding:
     get:
       tags: [misc]
@@ -944,6 +975,35 @@ paths:
         "501": { description: capability_absent, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "502": { $ref: "#/components/responses/TelemtUnreachable" }
 
+  /api/telemt/service:
+    get:
+      tags: [telemt]
+      operationId: getTelemtService
+      description: State of the configured service/container on the panel host, observed independently of the Telemt API. Unknown is not equivalent to stopped.
+      responses:
+        "200":
+          description: Service state and independently checked operation capabilities.
+          content: { application/json: { schema: { $ref: "#/components/schemas/TelemtServiceState" } } }
+  /api/telemt/start:
+    post:
+      tags: [telemt]
+      operationId: startTelemtService
+      description: Starts the configured Telemt service, not the panel. Requires explicit host rights; serialized with updates and manual service operations. Does not enable boot startup.
+      responses:
+        "202": { description: Start command completed; re-read service state rather than assuming readiness. }
+        "409": { $ref: "#/components/responses/ServiceControlError" }
+        "502": { $ref: "#/components/responses/ServiceControlError" }
+        "503": { $ref: "#/components/responses/ServiceControlError" }
+  /api/telemt/stop:
+    post:
+      tags: [telemt]
+      operationId: stopTelemtService
+      description: Stops only the configured Telemt service/container. Does not disable boot startup, remove containers or delete data. No automatic retry after an unconfirmed result.
+      responses:
+        "202": { description: Stop command completed; re-read service state to observe the result. }
+        "409": { $ref: "#/components/responses/ServiceControlError" }
+        "502": { $ref: "#/components/responses/ServiceControlError" }
+        "503": { $ref: "#/components/responses/ServiceControlError" }
   /api/telemt/restart:
     post:
       tags: [telemt]
@@ -954,6 +1014,7 @@ paths:
         config. Disabled when host cap restart_telemt=false.
       responses:
         "202": { description: Restart initiated }
+        "409": { description: update_locked — another service or update operation is running, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "503": { description: manual_restart_required — automatic restart unavailable on this host; message carries the manual command (same info as /api/host manual_commands), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "502": { description: internal_error — the restart op itself failed, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
@@ -1141,6 +1202,7 @@ paths:
     post:
       tags: [updates]
       operationId: applyUpdate
+      description: Install an explicitly selected release. Panel targets accept only the 1.x line; legacy and other major versions are rejected before starting an operation.
       parameters:
         - { name: target, in: path, required: true, schema: { type: string, enum: [telemt, panel] } }
       requestBody:
@@ -1440,6 +1502,9 @@ components:
       schema: { type: string, pattern: "^[A-Za-z0-9_.-]{1,64}$" }
 
   responses:
+    ServiceControlError:
+      description: Service control is busy, unavailable or has an unconfirmed result. Inspect the current service state before retrying a command.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
     QuotaResetError:
       description: Quota operation refused or unavailable; no automatic retry of mutations.
       content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
@@ -1555,6 +1620,15 @@ components:
         issues: { type: array, items: { $ref: "#/components/schemas/QuotaResetIssue" } }
         issues_total: { type: integer }
         next_offset: { type: integer }
+    LinkSettings:
+      type: object
+      additionalProperties: false
+      required: [allow_address_override]
+      properties:
+        allow_address_override:
+          type: boolean
+          default: false
+          description: Allow explicit selection of a configured censorship.tls_domains value as the connection address in the Access tab. Does not modify Telemt configuration or TLS secrets.
     BrandingConfig:
       type: object
       required: [title, logo_mode, logo_path]
@@ -1710,7 +1784,10 @@ components:
             - capability_absent
             - capability_unavailable
             - manual_restart_required
+            - manual_service_control_required
+            - service_action_unconfirmed
             - update_locked
+            - update_version_unsupported
             - sublink_unavailable
             - log_tail_unavailable
             - log_stream_unavailable
@@ -2320,11 +2397,32 @@ components:
             log_tail: { type: boolean }
             log_stream: { type: boolean }
             self_update: { type: boolean }
+            start_telemt: { type: boolean, description: Independently permitted start of the configured Telemt service. }
+            stop_telemt: { type: boolean, description: Independently permitted stop of the configured Telemt service. }
         manual_commands:
           type: object
           additionalProperties: { type: string }
           description: Copyable shell commands or actionable manual instructions for operations with cap=false.
 
+    TelemtServiceState:
+      type: object
+      required: [service, manager, status, status_supported, binding_conflict, caps, manual_commands, busy]
+      properties:
+        service: { type: string }
+        manager: { type: string }
+        status: { type: string, enum: [running, stopped, unknown] }
+        status_supported: { type: boolean }
+        status_error: { type: string, enum: [service_status_unavailable] }
+        binding_conflict: { type: boolean, description: The configured start/stop target collides with the panel binding. }
+        busy: { type: boolean, description: Shared host lock is held by a service command or an update. }
+        caps:
+          type: object
+          required: [start, stop, restart]
+          properties:
+            start: { type: boolean }
+            stop: { type: boolean }
+            restart: { type: boolean }
+        manual_commands: { type: object, additionalProperties: { type: string } }
     UpdatesStatus:
       type: object
       required: [targets, lock_held]
@@ -2338,6 +2436,10 @@ components:
             properties:
               target: { type: string, enum: [telemt, panel] }
               current_version: { type: string }
+              releases_error:
+                type: string
+                enum: [update_catalog_unavailable]
+                description: Release lookup failed. An empty releases array with this field is not evidence that the installed version is current.
               releases:
                 type: array
                 items:

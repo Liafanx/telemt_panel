@@ -1,0 +1,15 @@
+export const linkAddressEn = {
+  title: "Connection link addresses",
+  scope: "Panel-wide",
+  allow: "Allow connection address selection",
+  note: "Adds domains from censorship.tls_domains only to the user's Access tab. Quick links, subscriptions and WEB remain unchanged.",
+  saved: "Link setting saved",
+  address: "Connection address",
+  sourceVariant: "Original Telemt variant",
+  original: "Original Telemt address",
+  hint: "The selected domain must point to the intended server. Only the connection address changes; the port, secret and TLS camouflage remain unchanged.",
+  unavailable: "Could not load the domain list. Using the original Telemt address.",
+  loading: "Loading domains…",
+  empty: "No additional domains in censorship.tls_domains to choose from.",
+  noSettings: "Address selection settings are unavailable. Using the original Telemt link.",
+} as const;

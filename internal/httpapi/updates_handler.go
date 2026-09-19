@@ -69,6 +69,7 @@ type targetStatusView struct {
 	Target         string            `json:"target"`
 	CurrentVersion string            `json:"current_version"`
 	Releases       []releaseItemView `json:"releases"`
+	ReleasesError  string            `json:"releases_error,omitempty"`
 	ActiveRun      *updateRunView    `json:"active_run,omitempty"`
 	Journal        []updateRunView   `json:"journal"`
 }
@@ -105,6 +106,9 @@ func (s *Server) handleGetUpdates(w http.ResponseWriter, r *http.Request) {
 		}
 
 		ts := targetStatusView{Target: name, CurrentVersion: view.CurrentVersion, Releases: releases}
+		if err != nil {
+			ts.ReleasesError = "update_catalog_unavailable"
+		}
 		if run, ok := s.updateEngine.ActiveRun(name); ok {
 			v := runStatusView(run)
 			ts.ActiveRun = &v
@@ -149,6 +153,10 @@ func (s *Server) handleApplyUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.updateEngine.StartApply(target, req.Version); err != nil {
+		if errors.Is(err, update.ErrUnsupportedVersion) {
+			auth.WriteError(w, http.StatusBadRequest, "update_version_unsupported", "only panel 1.x releases can be installed from this panel")
+			return
+		}
 		if errors.Is(err, update.ErrBusy) {
 			auth.WriteError(w, http.StatusConflict, "update_locked", "another update run is in progress")
 			return

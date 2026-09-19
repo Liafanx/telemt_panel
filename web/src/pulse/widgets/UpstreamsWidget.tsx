@@ -1,12 +1,11 @@
 import { useSnapshot } from "../../realtime";
-import type { UpstreamStatus, UpstreamsTopic } from "../../realtime/topics";
+import type { RuntimeTopic, UpstreamStatus, UpstreamsTopic } from "../../realtime/topics";
 import { StatePill } from "../../ui/StatePill";
 import { Skeleton } from "../../ui/Skeleton";
 import { EmptyState } from "../../ui/EmptyState";
 import { fill, formatNumber, useStrings } from "../../i18n";
 import { cn } from "../../lib/cn";
 import { WidgetFrame } from "../WidgetFrame";
-import { GatedNote } from "../GatedNote";
 import {
   computeUpstreams,
   computeUpstreamsCard,
@@ -29,7 +28,17 @@ import {
 export function UpstreamsWidget() {
   const s = useStrings();
   const topic = useSnapshot<UpstreamsTopic>("upstreams");
-  const data = topic.data?.upstreams ?? null;
+  const runtime = useSnapshot<RuntimeTopic>("runtime");
+  // Both endpoints expose the same route snapshot. Disabling minimal
+  // statistics does not disable upstreams or their runtime-quality source.
+  // Prefer a fresh source, keeping its rows and summary together.
+  const sources = [
+    { data: topic.data?.upstreams, stale: topic.stale || !!topic.error },
+    { data: runtime.data?.upstream_quality, stale: runtime.stale || !!runtime.error },
+  ].filter(({ data }) => data?.enabled && (data.summary !== undefined || data.upstreams !== undefined));
+  const source = sources.find(({ stale }) => !stale) ?? sources[0];
+  const data = source?.data ?? null;
+  const loading = !source && [topic, runtime].some((snapshot) => !snapshot.data && !snapshot.error);
   const routes = data?.upstreams ?? [];
   const view = computeUpstreams(data);
   const card =
@@ -39,11 +48,11 @@ export function UpstreamsWidget() {
     <WidgetFrame
       title={s.pulse.widgets.upstreams}
       diagDomain="upstreams"
-      stale={topic.stale}
+      stale={source?.stale}
       badge={card && card.total > 0 ? <HealthPill card={card} /> : undefined}
     >
-      {view.status === "loading" && <Skeleton className="h-12 w-full" />}
-      {view.status === "disabled" && <GatedNote reason={view.reason} />}
+      {loading && <Skeleton className="h-12 w-full" />}
+      {!loading && !card && <EmptyState title={s.pulse.upstreams.unavailable} />}
       {card && card.total === 0 && <EmptyState title={s.pulse.upstreams.empty} />}
       {card && card.total > 0 && (
         <div

@@ -38,6 +38,8 @@ type AllowLists struct {
 	// Services lists the service/container names restart-service and
 	// read-journal may target.
 	Services []string
+	// ControlServices is the narrower allowlist for start/stop, excluding the panel.
+	ControlServices []string
 }
 
 // ExecOp validates op's arguments against allow and executes it,
@@ -48,6 +50,8 @@ type AllowLists struct {
 // matching one is nil.
 func ExecOp(ctx context.Context, op Op, allow AllowLists, svcMgr ServiceManager, logSrc LogSource) (Output, error) {
 	switch op.Kind {
+	case OpStartService, OpStopService:
+		return execServiceControl(ctx, op, allow, svcMgr)
 	case OpInstallBinary:
 		staging, err := requireWithinPrefix(op, ArgStaging, allow.StagingPrefix)
 		if err != nil {

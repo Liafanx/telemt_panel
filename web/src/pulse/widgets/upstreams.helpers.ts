@@ -11,9 +11,8 @@ export type UpstreamsResult =
   | { status: "disabled"; reason?: string }
   | { status: "ok"; upstreams: UpstreamStatus[]; healthyTotal: number; unhealthyTotal: number };
 
-// computeUpstreams reads the "upstreams" topic's own upstreams field
-// (GET /v1/stats/upstreams) — like DcStatusData, always present once the
-// topic loads with its own enabled/reason flag for the underlying feature.
+// Both upstream endpoints share this route/summary shape. The enabled
+// flag describes the observation source, not whether routing is configured.
 export function computeUpstreams(
   data: { enabled: boolean; reason?: string; summary?: { healthy_total: number; unhealthy_total: number }; upstreams?: UpstreamStatus[] } | null,
 ): UpstreamsResult {
@@ -126,7 +125,7 @@ export function upstreamMeanLatency(upstreams: readonly UpstreamStatus[]): numbe
  * grows the health fraction and the composition on its own, from the same
  * payload, with no second layout to maintain.
  */
-export function computeUpstreamsCard(result: UpstreamsResult & { status: "ok" }, data: UpstreamsData): UpstreamsCardView {
+export function computeUpstreamsCard(result: UpstreamsResult & { status: "ok" }, data: Pick<UpstreamsData, "summary">): UpstreamsCardView {
   const { upstreams, healthyTotal, unhealthyTotal } = result;
   const total = data.summary?.configured_total ?? healthyTotal + unhealthyTotal;
   const kinds = upstreamKinds(data.summary, upstreams);

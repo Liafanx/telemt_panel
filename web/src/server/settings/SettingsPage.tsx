@@ -27,6 +27,7 @@ import type { SessionInfo } from "../../lib/api/generated/types.gen";
 import { sessionDeviceLabel } from "./sessions.helpers";
 import { InterfacePreferences } from "./InterfacePreferences";
 import { BrandingSettings } from "./BrandingSettings";
+import { LinkSettings } from "./LinkSettings";
 import { SessionSheet } from "./SessionSheet";
 import { SessionIcon as SessionGlyph } from "./SessionIcon";
 import { StorageSettings } from "./StorageSettings";
@@ -311,6 +312,7 @@ export function SettingsPage() {
 
           <InterfacePreferences />
           <BrandingSettings />
+          <LinkSettings />
 
           {!authDisabled && <section className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl bg-surface p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
             <span

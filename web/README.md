@@ -94,6 +94,10 @@ every documented state; it's a dev-only route (`import.meta.env.DEV`-gated, see
 that file's comment) and stands in for Storybook, which this project doesn't
 add.
 
+Forms inside `Sheet` can pass a stable `useRef` through `initialFocusRef`
+instead of child `autoFocus`. This lets the sheet remember the opener before
+focusing the field, retain focus across edits, and restore it after closing.
+
 UI strings live in `src/i18n/` — `ru.ts` is the source of truth for the shape, `en.ts` is typed from it (a missing key is a compile error); components read the active dictionary via `useStrings()`, helpers take `s: Dict`; the language (Русский / English / Browser) is chosen in Server → Panel settings and persisted per device. An eslint rule forbids importing `ru`/`en` outside `src/i18n/`, and `i18n.test.ts` sweeps `src/` for stray Cyrillic.
 
 Only the selected dictionary loads at startup. Switching language keeps the
@@ -325,7 +329,7 @@ npm run e2e                       # playwright test
 - `e2e/stack.ts` builds `cmd/telemt-mock` itself (a dev/test-only binary,
   never part of `make build`/`make release`) into a scratch temp dir, hashes
   a fixed admin password through the real `telemt-panel hash-password`
-  subcommand, writes a scratch `config.toml` (memory store, `data_dir = ""`,
+  subcommand, writes a scratch `config.toml` (memory history, technical state in its temporary directory,
   subpage enabled with a throwaway secret), and launches both processes —
   see `e2e/global-setup.ts` (Playwright's "return a teardown function from
   globalSetup" pattern) and `e2e/env.ts` for the fixed ports/credentials
@@ -333,6 +337,16 @@ npm run e2e                       # playwright test
   the panel binary itself — that's `make build`'s job, run once before
   `npm run e2e`, exactly like a developer already has to for any other
   end-to-end check against the real embedded SPA.
+- Set `TELEMT_PANEL_E2E_BINARY` to use a binary built outside the source tree.
+  Session-recovery tests also use this binary: they launch their own loopback
+  panel on an ephemeral port, preserve its temporary state across restarts,
+  and replace only that instance's test password hash. Both root and `/panel`
+  paths are covered. Service management is disabled for these instances;
+  processes and temporary data are removed on teardown.
+- Passkey regressions type into the real setup form on phone and desktop,
+  check focus during editing and after closing, and cancel without creating
+  a credential. Session tests retain the browser's old cookie while checking
+  login recovery, rather than clearing cookies to make the test pass.
 - The share/sub-page flow deliberately exercises `alice` (the fixture user
   `telemttest.New` seeds with a real classic proxy link), not the user the
   test just created — `cmd/telemt-mock`'s `CreateUser` fixture always

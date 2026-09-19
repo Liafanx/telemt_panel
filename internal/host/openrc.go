@@ -20,6 +20,16 @@ func NewOpenRC(runner CmdRunner) *OpenRC {
 // Kind implements ServiceManager.
 func (o *OpenRC) Kind() string { return KindOpenRC }
 
+// Start starts the configured service without changing runlevels.
+func (o *OpenRC) Start(ctx context.Context, service string) error {
+	return serviceCommand(ctx, o.run, "rc-service", service, "start")
+}
+
+// Stop stops the configured service without changing runlevels.
+func (o *OpenRC) Stop(ctx context.Context, service string) error {
+	return serviceCommand(ctx, o.run, "rc-service", service, "stop")
+}
+
 // Status implements ServiceManager via `rc-service <svc> status`, whose
 // output ("* status: started"/"stopped"/"crashed") is matched by
 // substring — the exact prefix varies across OpenRC versions.

@@ -211,6 +211,16 @@ func (e *Engine) ReleasesView(ctx context.Context, targetName string) (ReleasesV
 		return ReleasesView{CurrentVersion: current}, err
 	}
 	matcher := e.assetMatcher(targetName)
+	if targetName == TargetPanel {
+		// The GitHub client caches release slices; never mutate that cache.
+		allowed := make([]Release, 0, len(releases))
+		for _, release := range releases {
+			if versionAllowed(targetName, release.Tag) {
+				allowed = append(allowed, release)
+			}
+		}
+		releases = allowed
+	}
 	return BuildReleasesView(current, releases, matcher, e.maxNewer, e.maxOlder), nil
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMeQueryKey } from "../../auth/guards";
 import {
@@ -35,6 +35,7 @@ export function PasskeySettings({ passkeys }: PasskeySettingsProps) {
   const s = useStrings();
   const queryClient = useQueryClient();
   const [setupOpen, setSetupOpen] = useState(false);
+  const nameInput = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [remove, setRemove] = useState<PasskeyInfo | null>(null);
   const supported = passkeysSupported();
@@ -144,6 +145,7 @@ export function PasskeySettings({ passkeys }: PasskeySettingsProps) {
 
       <Sheet
         open={setupOpen}
+        initialFocusRef={nameInput}
         onClose={() => {
           if (registerMutation.isPending) return;
           setSetupOpen(false);
@@ -166,7 +168,7 @@ export function PasskeySettings({ passkeys }: PasskeySettingsProps) {
               {s.server.settings.passkeyName}
             </span>
             <Input
-              autoFocus
+              ref={nameInput}
               autoComplete="off"
               maxLength={80}
               placeholder={s.server.settings.passkeyNamePlaceholder}

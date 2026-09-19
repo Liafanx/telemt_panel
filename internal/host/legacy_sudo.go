@@ -33,6 +33,8 @@ func NewLegacySudoPolicyRunner(allow AllowLists, svcMgr ServiceManager, logSrc L
 // Run implements Runner using the 0.x installer's fixed command layout.
 func (r *LegacySudoRunner) Run(ctx context.Context, op Op) (Output, error) {
 	switch op.Kind {
+	case OpStartService, OpStopService:
+		return execServiceControl(ctx, op, r.allow, r.svcMgr)
 	case OpInstallBinary:
 		src, err := requireWithinPrefix(op, ArgStaging, r.allow.StagingPrefix)
 		if err != nil {

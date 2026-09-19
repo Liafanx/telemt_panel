@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect,useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ServerShell } from "../ServerShell";
 import { errorMessage, useStrings } from "../../i18n";
@@ -40,9 +40,14 @@ export function UpdatesPage() {
     ...getUpdatesOptions(),
     refetchInterval: (query) => {
       const hasActiveRun = Boolean(query.state.data?.lock_held);
-      return hasActiveRun && connection.status !== "open" ? 3000 : false;
+      const hasUpdateRun = query.state.data?.targets.some(target => target.active_run);
+      // Manual service commands share the lock but do not emit update phases.
+      return hasActiveRun && (connection.status !== "open" || !hasUpdateRun) ? 3000 : false;
     },
   });
+  useEffect(()=>{
+    if(sse.data?.phase&&isTerminalUpdatePhase(sse.data.phase as UpdatePhase))void queryClient.invalidateQueries({queryKey:getUpdatesQueryKey()});
+  },[sse.data?.run_id,sse.data?.phase,queryClient]);
 
   if (updatesQuery.isPending || hostQuery.isPending) {
     return (
@@ -73,6 +78,7 @@ export function UpdatesPage() {
   const availableCount = targets.filter((target) =>
     Boolean(pickLatestRelease(target.releases)),
   ).length;
+  const catalogUnavailable=targets.some(target=>!!target.releases_error);
   const activeTarget = targets.find((target) => {
     const event = sse.data?.target === target.target ? sse.data : null;
     const run = event ?? target.active_run;
@@ -81,9 +87,9 @@ export function UpdatesPage() {
 
   const headerState = activeTarget
     ? `${s.server.updates.running}: ${s.server.updates.targetNames[activeTarget.target]}`
-    : availableCount > 0
+    : catalogUnavailable?s.releasePicker.partialCatalog:availableCount > 0
       ? s.server.updates.availableCount.replace("{count}", String(availableCount))
-      : s.server.updates.allCurrent;
+      : s.releasePicker.noNewer;
 
   return (
     <ServerShell title={s.server.updates.title}>
@@ -98,19 +104,20 @@ export function UpdatesPage() {
               <CardTitle className="sm:mt-0.5">{s.server.updates.versionsTitle}</CardTitle>
             </div>
             <StatePill
-              state={activeTarget ? "muted" : availableCount > 0 ? "warn" : "ok"}
+              state={activeTarget ? "muted" : catalogUnavailable||availableCount > 0 ? "warn" : "muted"}
               className={`whitespace-nowrap ${activeTarget ? "bg-accent/15 text-accent [&>span]:bg-accent" : ""}`}
             >
               {headerState}
             </StatePill>
           </div>
-          <div>
+          <div className="uv-targets">
             {targets.map((target) => (
               <UpdateTarget
                 key={target.target}
                 target={target.target}
                 data={target}
                 lockHeld={updatesQuery.data.lock_held}
+                refreshing={updatesQuery.isFetching}
                 hostCaps={hostQuery.data?.caps}
                 manualCommands={hostQuery.data?.manual_commands}
                 sseEvent={sse.data}
