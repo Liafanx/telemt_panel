@@ -10,35 +10,34 @@
 //
 // The `page` fixture is also overridden to pin the UI language: the panel
 // is bilingual (D3) and picks its default from the browser's Accept-
-// Language, which the Playwright runner does not fix. Every selector in
-// this suite matches the Russian strings, so the run seeds the same
+// Language, which the Playwright runner does not fix. Tests default to
+// Russian; bilingual suites can override uiLocale. The run seeds the same
 // per-device localStorage key the language switch writes — before any
 // document script runs, via addInitScript — instead of making the specs
-// locale-agnostic. Testing the real, default-locale text is the point; the
-// English half is covered by the dictionary tests and a component test in
-// src/i18n/.
+// locale-agnostic or installing competing initialization scripts.
 import { test as base, expect } from "@playwright/test";
 import { ADMIN_PASSWORD, ADMIN_USERNAME } from "./env";
 
 export const LOCALE_STORAGE_KEY = "telemt-panel:locale:v1";
 
-export const test = base.extend<{ login: () => Promise<void> }>({
-  page: async ({ page }, use) => {
-    await page.addInitScript((key: string) => {
+export const test = base.extend<{ login: () => Promise<void>; uiLocale: "ru" | "en" }>({
+  uiLocale: ["ru", { option: true }],
+  page: async ({ page, uiLocale }, use) => {
+    await page.addInitScript(({ key, locale }) => {
       try {
-        localStorage.setItem(key, "ru");
+        localStorage.setItem(key, locale);
       } catch {
         // Storage disabled — the assertions will report the mismatch.
       }
-    }, LOCALE_STORAGE_KEY);
+    }, { key: LOCALE_STORAGE_KEY, locale: uiLocale });
     await use(page);
   },
-  login: async ({ page }, use) => {
+  login: async ({ page, uiLocale }, use) => {
     await use(async () => {
       await page.goto("/login");
-      await page.getByLabel("Имя пользователя").fill(ADMIN_USERNAME);
-      await page.getByLabel("Пароль").fill(ADMIN_PASSWORD);
-      await page.getByRole("button", { name: "Войти", exact: true }).click();
+      await page.getByLabel(uiLocale === "ru" ? "Имя пользователя" : "Username").fill(ADMIN_USERNAME);
+      await page.getByLabel(uiLocale === "ru" ? "Пароль" : "Password").fill(ADMIN_PASSWORD);
+      await page.getByRole("button", { name: uiLocale === "ru" ? "Войти" : "Sign in", exact: true }).click();
       await expect(page).toHaveURL(/\/people$/);
     });
   },

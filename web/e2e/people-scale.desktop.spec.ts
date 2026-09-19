@@ -132,6 +132,11 @@ test("2000 users keep bounded rows, navigation and fresh data after reconnect", 
       await page.getByRole("link", { name: "Пользователи", exact: true }).click();
       await expect(page).toHaveURL(/\/people$/);
       await expect.poll(() => activeStreams.size, { timeout: 10000 }).toBe(0);
+      // Leaving Users resets its search, even offline. Cached rows remain
+      // available and filtering them must not depend on a network request.
+      await expect(search).toHaveValue("");
+      await expect(page.getByTestId("user-card-alice")).toBeVisible();
+      await search.fill("scale-1999");
       await expect(last).toBeVisible();
       // Node's request goes only to this run's mock, independently of the
       // browser's offline state. No browser route or EventSource is replaced.

@@ -3,6 +3,7 @@ import { useStrings } from "../i18n";
 import { IconActivity, IconJournal } from "../ui/icons";
 import { LogsTab } from "./LogsTab";
 import { ActionsTab } from "./EventsTab";
+import { PageHeader } from "../ui/PageHeader";
 
 type JournalTab = "logs" | "actions";
 
@@ -17,17 +18,8 @@ export function JournalPage() {
 
   return (
     <div className="journal-page">
+      <PageHeader title={s.nav.journal} />
       <section className="journal-surface">
-        <header className="journal-app-head">
-          <span className="journal-app-icon" aria-hidden="true">
-            <IconJournal />
-          </span>
-          <div>
-            <span>{s.journal.eyebrow}</span>
-            <h1>{s.nav.journal}</h1>
-          </div>
-        </header>
-
         <div className="journal-tabs" role="tablist" aria-label={s.nav.journal}>
           {TABS.map((id) => {
             const Glyph = id === "logs" ? IconActivity : IconJournal;

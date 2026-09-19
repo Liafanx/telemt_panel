@@ -451,18 +451,16 @@ export function DcPage() {
 
   return (
     <div className="w-full" data-testid="dc-detail">
+      <DetailHeader
+        title={s.details.pages.dc.title}
+        description={s.details.pages.dc.description}
+        status={notice==='direct'?'empty':notice==='fallback'?'partial':sources.status}
+        statusLabel={notice?meAvailabilityText(notice,s).label:undefined}
+        freshnessMs={sources.freshnessMs}
+        nowMs={nowMs}
+        onBack={() => void navigate({ to: "/pulse" })}
+      />
       <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="border-b border-border px-4 py-4 sm:px-5">
-          <DetailHeader
-            title={s.details.pages.dc.title}
-            description={s.details.pages.dc.description}
-            status={notice==='direct'?'empty':notice==='fallback'?'partial':sources.status}
-            statusLabel={notice?meAvailabilityText(notice,s).label:undefined}
-            freshnessMs={sources.freshnessMs}
-            nowMs={nowMs}
-            onBack={() => void navigate({ to: "/pulse" })}
-          />
-        </div>
 
         {notice==='fallback'&&pairs.length>0&&<div className="px-4 py-5 sm:px-5"><MeSourceNotice state={notice} available/></div>}
         {notice&&(notice!=='fallback'||pairs.length===0) ? <div className="px-4 py-5 sm:px-5"><MeSourceNotice state={notice}/></div> : payload === null ? (

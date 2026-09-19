@@ -5,6 +5,8 @@ import {getQuotaSchedule,getUserQuotaSchedule,previewQuotaSchedule,saveQuotaSche
 import type {QuotaScheduleRule,QuotaScheduleView,UserQuotaSchedule} from "../lib/api/generated/types.gen";
 import {countLabel,errorMessage,useStrings} from "../i18n";
 import {Button} from "../ui/Button";
+import {PageHeader} from "../ui/PageHeader";
+import {IconChevronLeft} from "../ui/icons";
 import {PeopleContext} from "./PeopleContext";
 import {apiErrorCode} from "./apiError";
 import {useDebouncedValue} from "./useDebouncedValue";
@@ -71,7 +73,7 @@ function ScheduleForm({initial,username,onCancel,onDirty}:{initial:QuotaSchedule
   const error=mutation.error??reloadMutation.error;
   const blocked=readonly||mutation.isPending;
   return <div className="quota-schedule">
-    {!username&&<><header className="user-detail-header"><div><h1>{t.title}</h1><p className="qs-muted">{t.subtitle}</p></div><span className={`qs-state ${global.enabled?"on":""}`}>{global.enabled?t.enabled:t.disabled}</span></header><div className="qs-counts"><div><strong>{baseline.custom_count}</strong><span>{t.custom}</span></div><div><strong>{baseline.excluded_count}</strong><span>{t.excluded}</span></div><p>{t.tracked}</p></div></>}
+    {!username&&<><PageHeader title={t.title} description={t.subtitle} back={<Link to="/people" aria-label={s.people.workspace.back}><IconChevronLeft aria-hidden="true"/>{s.people.title}</Link>} meta={<span className={`qs-state ${global.enabled?"on":""}`}>{global.enabled?t.enabled:t.disabled}</span>}/><div className="qs-counts"><div><strong>{baseline.custom_count}</strong><span>{t.custom}</span></div><div><strong>{baseline.excluded_count}</strong><span>{t.excluded}</span></div><p>{t.tracked}</p></div></>}
     <form onSubmit={e=>{e.preventDefault();if(!blocked&&dirty&&(!mustValidate||!waiting&&!preview.isError))mutation.mutate();}}>
       <div className="qs-layout"><div className="qs-stack"><section className="user-section">
         {username?<><h2>{t.userTitle} · {username}</h2><fieldset className="qs-modes" disabled={blocked}>{([["inherit",t.inherit,global.enabled?t.inherited:t.inheritedOff],["custom",t.custom,t.customNote],["off",t.off,t.offNote]] as const).map(([key,title,note])=><label key={key}><input type="radio" name="user-schedule" checked={mode===key} onChange={()=>setPolicy({...policy,mode:key})}/><span><strong>{title}</strong><small>{note}</small></span></label>)}</fieldset></>:<><label className="qs-switch"><div><strong>{t.common}</strong><span>{t.commonNote}</span></div><input type="checkbox" role="switch" aria-label={t.common} checked={global.enabled} disabled={blocked||!baseline.durable&&!global.enabled} onChange={e=>setGlobal({...global,enabled:e.target.checked})}/></label><p className="qs-muted">{t.independent}</p></>}
@@ -92,12 +94,11 @@ function ScheduleForm({initial,username,onCancel,onDirty}:{initial:QuotaSchedule
 
 export function QuotaScheduleEditor({username,onCancel,onDirty}:{username?:string;onCancel:()=>void;onDirty:(dirty:boolean)=>void}){
   const s=useStrings(),query=useSchedule(username);
-  if(query.isPending)return <p role="status">{s.common.loading}</p>;
-  if(query.isError)return <div role="alert"><p className="qs-warning">{errorMessage(s,apiErrorCode(query.error)??"network")}</p><Button variant="secondary" onClick={()=>void query.refetch()}>{s.common.retry}</Button></div>;
+  if(query.isPending||query.isError)return <>{!username&&<PageHeader title={s.quotaSchedule.title} description={s.quotaSchedule.subtitle} back={<Link to="/people" aria-label={s.people.workspace.back}><IconChevronLeft aria-hidden="true"/>{s.people.title}</Link>}/>}{query.isPending?<p role="status">{s.common.loading}</p>:<div role="alert"><p className="qs-warning">{errorMessage(s,apiErrorCode(query.error)??"network")}</p><Button variant="secondary" onClick={()=>void query.refetch()}>{s.common.retry}</Button></div>}</>;
   return <ScheduleForm initial={query.data} username={username} onCancel={onCancel} onDirty={onDirty}/>;
 }
 
-export function QuotaSchedulePage(){const s=useStrings(),navigate=useNavigate(),{setDirty,confirmation}=useUserFormBlocker();return <div className="user-detail-page"><Link className="user-back" to="/people">← {s.people.workspace.back}</Link><QuotaScheduleEditor onDirty={setDirty} onCancel={()=>void navigate({to:"/people"})}/>{confirmation}</div>;}
+export function QuotaSchedulePage(){const navigate=useNavigate(),{setDirty,confirmation}=useUserFormBlocker();return <div className="user-detail-page"><QuotaScheduleEditor onDirty={setDirty} onCancel={()=>void navigate({to:"/people"})}/>{confirmation}</div>;}
 
 export function UserScheduleSummary({username,onEdit}:{username:string;onEdit:()=>void}){
   const s=useStrings(),t=s.quotaSchedule,query=useSchedule(username),v=query.data;

@@ -1356,18 +1356,16 @@ export function MePage() {
 
   return (
     <div className="w-full" data-testid="me-detail">
+      <DetailHeader
+        title={s.details.pages.me.title}
+        description={s.details.pages.me.description}
+        status={notice==='direct'?'empty':notice==='fallback'?'partial':sources.status}
+        statusLabel={notice?meAvailabilityText(notice,s).label:undefined}
+        freshnessMs={sources.freshnessMs}
+        nowMs={nowMs}
+        onBack={() => void navigate({ to: "/pulse" })}
+      />
       <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="border-b border-border px-4 py-4 sm:px-5">
-          <DetailHeader
-            title={s.details.pages.me.title}
-            description={s.details.pages.me.description}
-            status={notice==='direct'?'empty':notice==='fallback'?'partial':sources.status}
-            statusLabel={notice?meAvailabilityText(notice,s).label:undefined}
-            freshnessMs={sources.freshnessMs}
-            nowMs={nowMs}
-            onBack={() => void navigate({ to: "/pulse" })}
-          />
-        </div>
 
         {payload === null ? (
           <div className="grid min-h-64 place-items-center px-5 text-center">

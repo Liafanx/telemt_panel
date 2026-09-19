@@ -177,142 +177,138 @@ export function SettingsPage() {
         </dl>}
       </section>
 
-      <div className="grid items-start gap-2.5 lg:grid-cols-[minmax(0,1.35fr)_minmax(330px,0.65fr)]">
-        {authDisabled ? <AuthDisabledDetails /> : <section
-          data-testid="settings-sessions"
-          className="overflow-hidden rounded-xl bg-surface"
-          aria-labelledby="sessions-title"
-        >
-          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3.5">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-text-faint">
-                {s.server.settings.panelAccess}
-              </span>
-              <h2 id="sessions-title" className="mt-1 text-[16px] font-bold text-text">
-                {s.server.settings.sessionsTitle}
-              </h2>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {page && (
-                <span className="rounded-full bg-accent/10 px-2.5 py-1.5 text-[10px] font-bold text-accent">
-                  {countLabel(s, page.total, s.server.settings.activeSessionForms)}
+      <div className="grid items-start gap-2.5 lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-2.5">
+          {authDisabled ? <AuthDisabledDetails /> : <section
+            data-testid="settings-sessions"
+            className="overflow-hidden rounded-xl bg-surface"
+            aria-labelledby="sessions-title"
+          >
+            <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3.5">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-text-faint">
+                  {s.server.settings.panelAccess}
                 </span>
-              )}
-              {otherCount > 0 && (
-                <Button variant="danger" size="sm" onClick={() => setConfirmOthers(true)}>
-                  {s.server.settings.revokeOthers}
-                </Button>
-              )}
-            </div>
-          </header>
-
-          {sessionsQuery.isPending ? (
-            <div className="flex flex-col gap-2 p-4">
-              {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className="h-[58px] w-full" />
-              ))}
-            </div>
-          ) : sessionsQuery.isError ? (
-            <div className="p-4">
-              <ErrorState
-                message={errorMessage(s, apiErrorCode(sessionsQuery.error) ?? "internal_error")}
-                onRetry={() => sessionsQuery.refetch()}
-              />
-            </div>
-          ) : currentSession ? (
-            <>
-              <button
-                type="button"
-                onClick={() => openSessionSheet(currentSession)}
-                className="flex min-h-[64px] w-full items-center gap-3 bg-ok/5 px-4 py-2.5 text-left hover:bg-ok/8"
-              >
-                <SessionGlyph session={currentSession} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <strong className="truncate text-[13px] text-text">
-                      {sessionDeviceLabel(currentSession, s)}
-                    </strong>
-                    <small className="shrink-0 rounded-full bg-ok/12 px-2 py-1 text-[9px] font-bold text-ok">
-                      {s.server.settings.currentSessionLabel}
-                    </small>
-                  </span>
-                  <span className="mt-1 block truncate text-[11px] text-text-faint">
-                    {currentSession.ip || s.server.settings.unknownAddress} ·{" "}
-                    {s.server.settings.activeNow}
-                  </span>
-                </span>
-                <IconChevronRight className="shrink-0 text-accent" aria-hidden="true" />
-              </button>
-
-              <div className="flex items-center justify-between gap-3 border-y border-border px-4 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-text-faint">
-                <span>{s.server.settings.recentOtherSessions}</span>
-                <small className="font-bold normal-case tracking-normal">
-                  {s.server.settings.shownOf
-                    .replace("{shown}", String(recentSessions.length))
-                    .replace("{total}", String(otherCount))}
-                </small>
+                <h2 id="sessions-title" className="mt-1 text-[16px] font-bold text-text">
+                  {s.server.settings.sessionsTitle}
+                </h2>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {page && (
+                  <span className="rounded-full bg-accent/10 px-2.5 py-1.5 text-[10px] font-bold text-accent">
+                    {countLabel(s, page.total, s.server.settings.activeSessionForms)}
+                  </span>
+                )}
+                {otherCount > 0 && (
+                  <Button variant="danger" size="sm" onClick={() => setConfirmOthers(true)}>
+                    {s.server.settings.revokeOthers}
+                  </Button>
+                )}
+              </div>
+            </header>
 
-              {recentSessions.length === 0 ? (
-                <div className="px-4 py-8 text-center text-[12px] text-text-muted">
-                  {s.server.settings.noOtherSessions}
-                </div>
-              ) : (
-                recentSessions.map((session) => (
-                  <button
-                    key={session.id}
-                    type="button"
-                    onClick={() => openSessionSheet(session)}
-                    className="flex min-h-[62px] w-full items-center gap-3 border-b border-border px-4 py-2.5 text-left hover:bg-surface-2"
-                  >
-                    <SessionGlyph session={session} />
-                    <span className="min-w-0 flex-1">
-                      <strong className="block truncate text-[13px] text-text">
-                        {sessionDeviceLabel(session, s)}
-                      </strong>
-                      <small className="mt-1 block truncate text-[11px] text-text-faint">
-                        {session.ip || s.server.settings.unknownAddress} ·{" "}
-                        {formatAuditTimestamp(session.last_seen, s)}
-                      </small>
-                    </span>
-                    <IconChevronRight className="shrink-0 text-accent" aria-hidden="true" />
-                  </button>
-                ))
-              )}
-
-              {otherCount > 0 && (
+            {sessionsQuery.isPending ? (
+              <div className="flex flex-col gap-2 p-4">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <Skeleton key={index} className="h-[58px] w-full" />
+                ))}
+              </div>
+            ) : sessionsQuery.isError ? (
+              <div className="p-4">
+                <ErrorState
+                  message={errorMessage(s, apiErrorCode(sessionsQuery.error) ?? "internal_error")}
+                  onRetry={() => sessionsQuery.refetch()}
+                />
+              </div>
+            ) : currentSession ? (
+              <>
                 <button
                   type="button"
-                  onClick={() => openSessionSheet(null)}
-                  className="flex min-h-[66px] w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2"
+                  onClick={() => openSessionSheet(currentSession)}
+                  className="flex min-h-[64px] w-full items-center gap-3 bg-ok/5 px-4 py-2.5 text-left hover:bg-ok/8"
                 >
+                  <SessionGlyph session={currentSession} />
                   <span className="min-w-0 flex-1">
-                    <small className="block text-[10px] font-extrabold uppercase tracking-[0.08em] text-text-faint">
-                      {s.server.settings.fullList}
-                    </small>
-                    <strong className="mt-1 block truncate text-[12px] text-accent">
-                      {s.server.settings.openAll.replace("{count}", String(otherCount))}
-                    </strong>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <strong className="truncate text-[13px] text-text">
+                        {sessionDeviceLabel(currentSession, s)}
+                      </strong>
+                      <small className="shrink-0 rounded-full bg-ok/12 px-2 py-1 text-[9px] font-bold text-ok">
+                        {s.server.settings.currentSessionLabel}
+                      </small>
+                    </span>
+                    <span className="mt-1 block truncate text-[11px] text-text-faint">
+                      {currentSession.ip || s.server.settings.unknownAddress} ·{" "}
+                      {s.server.settings.activeNow}
+                    </span>
                   </span>
                   <IconChevronRight className="shrink-0 text-accent" aria-hidden="true" />
                 </button>
-              )}
-            </>
-          ) : (
-            <div className="p-4 text-[12px] text-text-muted">
-              {s.server.settings.noSessionsFound}
-            </div>
-          )}
-        </section>}
 
-        <div className="flex min-w-0 flex-col gap-2.5">
+                <div className="flex items-center justify-between gap-3 border-y border-border px-4 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-text-faint">
+                  <span>{s.server.settings.recentOtherSessions}</span>
+                  <small className="font-bold normal-case tracking-normal">
+                    {s.server.settings.shownOf
+                      .replace("{shown}", String(recentSessions.length))
+                      .replace("{total}", String(otherCount))}
+                  </small>
+                </div>
+
+                {recentSessions.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-[12px] text-text-muted">
+                    {s.server.settings.noOtherSessions}
+                  </div>
+                ) : (
+                  recentSessions.map((session) => (
+                    <button
+                      key={session.id}
+                      type="button"
+                      onClick={() => openSessionSheet(session)}
+                      className="flex min-h-[62px] w-full items-center gap-3 border-b border-border px-4 py-2.5 text-left hover:bg-surface-2"
+                    >
+                      <SessionGlyph session={session} />
+                      <span className="min-w-0 flex-1">
+                        <strong className="block truncate text-[13px] text-text">
+                          {sessionDeviceLabel(session, s)}
+                        </strong>
+                        <small className="mt-1 block truncate text-[11px] text-text-faint">
+                          {session.ip || s.server.settings.unknownAddress} ·{" "}
+                          {formatAuditTimestamp(session.last_seen, s)}
+                        </small>
+                      </span>
+                      <IconChevronRight className="shrink-0 text-accent" aria-hidden="true" />
+                    </button>
+                  ))
+                )}
+
+                {otherCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openSessionSheet(null)}
+                    className="flex min-h-[66px] w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <small className="block text-[10px] font-extrabold uppercase tracking-[0.08em] text-text-faint">
+                        {s.server.settings.fullList}
+                      </small>
+                      <strong className="mt-1 block truncate text-[12px] text-accent">
+                        {s.server.settings.openAll.replace("{count}", String(otherCount))}
+                      </strong>
+                    </span>
+                    <IconChevronRight className="shrink-0 text-accent" aria-hidden="true" />
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="p-4 text-[12px] text-text-muted">
+                {s.server.settings.noSessionsFound}
+              </div>
+            )}
+          </section>}
+
           {!authDisabled && <PasskeySettings passkeys={meQuery.data?.passkeys ?? []} />}
           <TransportStatus />
           <TransportStatus target="subscription" />
-
-          <InterfacePreferences />
-          <BrandingSettings />
-          <LinkSettings />
 
           {!authDisabled && <section className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl bg-surface p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
             <span
@@ -341,6 +337,11 @@ export function SettingsPage() {
               {s.server.settings.signOut}
             </Button>
           </section>}
+        </div>
+        <div className="flex min-w-0 flex-col gap-2.5">
+          <InterfacePreferences />
+          <BrandingSettings />
+          <LinkSettings />
         </div>
       </div>
 

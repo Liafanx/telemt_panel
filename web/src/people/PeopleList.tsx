@@ -3,7 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AsyncState } from "../components/AsyncState";
 import { Button } from "../ui/Button";
-import { IconArrowDown, IconArrowUp, IconClose, IconPeople, IconPlus, IconSearch, IconSort } from "../ui/icons";
+import { IconArrowDown, IconArrowUp, IconClose, IconPlus, IconSearch, IconSort } from "../ui/icons";
+import { PageHeader } from "../ui/PageHeader";
 import { CardList, CardRow } from "../ui/Card";
 import { Sheet } from "../ui/Sheet";
 import { pluralTemplate, useStrings, type Dict } from "../i18n";
@@ -162,17 +163,10 @@ export function PeopleList() {
   const edit = (user:UsersTopicUser)=>void navigate({to:"/people/$username",params:{username:user.username},search:{tab:"settings"}});
 
   return (
-    <div className="users-workspace flex min-h-0 flex-1 flex-col px-4 pb-4 md:px-6">
-      <header className="flex shrink-0 items-center justify-between gap-2 py-3 md:gap-4 md:py-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="people-page-icon hidden sm:grid"><IconPeople className="h-5 w-5" /></span>
-          <div className="min-w-0">
-            <span className="hidden text-micro font-semibold text-text-faint sm:block">{s.people.accessManagement}</span>
-            <div className="flex flex-wrap items-baseline gap-x-2"><h1 className="text-xl font-extrabold tracking-tight text-text md:text-title">{s.people.title}</h1><span className="font-mono text-meta tabular-nums text-text-muted">{counts.all}</span></div>
-          </div>
-        </div>
+    <div className="users-workspace flex min-h-0 flex-1 flex-col p-4">
+      <PageHeader title={s.people.title} titleMeta={<span className="font-mono text-meta tabular-nums text-text-muted">{counts.all}</span>} actions={
         <div className="flex shrink-0 gap-2"><Button aria-label={s.people.create} disabled={access.readOnly} onClick={create}><IconPlus className="h-4 w-4" /><span className="hidden min-[440px]:inline">{s.people.create}</span></Button><button type="button" className="user-menu-trigger" aria-label={s.people.bulkQuota.menu} onClick={e=>bulkQuota.openMenu(e.currentTarget.getBoundingClientRect())}><IconMore/></button></div>
-      </header>
+      } />
 
       <div className="flex min-h-0 flex-1 gap-3">
         <section className="people-list-pane flex min-w-0 flex-1 flex-col">

@@ -1098,18 +1098,18 @@ export function WebPage({ backTo = "/pulse" }: { backTo?: "/pulse" | "/server" }
   return (
     <>
       <div className="w-full" data-testid="web-detail">
+        <DetailHeader
+          title={web.title}
+          description={web.description}
+          backLabel={backTo === "/server" ? s.server.title : s.pulse.title}
+          status={sources.status}
+          freshnessMs={sources.freshnessMs}
+          nowMs={nowMs}
+          onBack={() => void navigate({ to: backTo })}
+        />
         <section className="overflow-hidden rounded-2xl border border-border bg-surface">
           <div className="px-4 py-5 sm:px-5">
-            <DetailHeader
-              title={web.title}
-              description={web.description}
-              breadcrumb={v.breadcrumb}
-              status={sources.status}
-              freshnessMs={sources.freshnessMs}
-              nowMs={nowMs}
-              onBack={() => void navigate({ to: backTo })}
-            />
-            <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-b border-border">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border">
               <div className="flex gap-1" role="tablist" aria-label={web.title}>
                 <button
                   type="button"

@@ -536,17 +536,15 @@ export function EventsPage() {
 
   return (
     <div className="w-full" data-testid="events-detail">
+      <DetailHeader
+        title={s.details.pages.events.title}
+        description={s.details.pages.events.description}
+        status={status}
+        freshnessMs={sources.freshnessMs}
+        nowMs={nowMs}
+        onBack={() => void navigate({ to: "/pulse" })}
+      />
       <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="border-b border-border px-4 py-4 sm:px-5">
-          <DetailHeader
-            title={s.details.pages.events.title}
-            description={s.details.pages.events.description}
-            status={status}
-            freshnessMs={sources.freshnessMs}
-            nowMs={nowMs}
-            onBack={() => void navigate({ to: "/pulse" })}
-          />
-        </div>
         {runtime.data === null ? (
           <div className="grid min-h-64 place-items-center px-5 text-center">
             <div>

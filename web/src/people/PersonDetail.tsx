@@ -4,7 +4,8 @@ import {useStrings} from "../i18n";
 import {formatBytes} from "../lib/format";
 import {AsyncState} from "../components/AsyncState";
 import {Button} from "../ui/Button";
-import {IconMore} from "../ui/icons";
+import {IconChevronLeft,IconMore} from "../ui/icons";
+import {PageHeader} from "../ui/PageHeader";
 import {useConnectionState} from "../realtime";
 import {useUsersTopic,findQuotaEntry} from "./useUsersTopic";
 import {useNow} from "./useNow";
@@ -34,14 +35,14 @@ export function PersonDetail({username,tab="overview"}:{username:string;tab?:Per
   useEffect(()=>{const nav=tabNav.current,selected=nav?.querySelector<HTMLElement>('[aria-current="page"]');if(!nav||!selected)return;const n=nav.getBoundingClientRect(),b=selected.getBoundingClientRect();if(b.left<n.left)nav.scrollLeft-=n.left-b.left;else if(b.right>n.right)nav.scrollLeft+=b.right-n.right;},[tab,topic.isPending]);
   function select(next:PersonTab){void navigate({to:"/people/$username",params:{username},search:{tab:next},replace:true});}
   return <div className="user-detail-page">
-    <Link className="user-back" to="/people" aria-label={s.common.back}>← {t.back}</Link>
+    {(topic.isPending || topic.isError || !topic.users.some(user=>user.username===username)) && <PageHeader title={username} back={<Link to="/people" aria-label={s.common.back}><IconChevronLeft aria-hidden="true"/>{s.people.title}</Link>}/>}
     <AsyncState isPending={topic.isPending} isError={topic.isError} errorCode={topic.errorCode??undefined} data={topic.users} isEmpty={users=>!users.some(u=>u.username===username)} emptyTitle={s.people.notFoundTitle} stale={topic.stale||connection.stale} onRetry={connection.retry}>
       {users=>{
         const user=users.find(u=>u.username===username)!;
         const quota=getUserQuota(user,findQuotaEntry(topic.quota,username));
         const state=computeUserStatus(user,quota,now);
         return <>
-          <header className="user-detail-header"><div><h1>{username}</h1><p className={state!=="active"?"text-warn":isOnline(user)?"text-ok":"text-text-muted"}>{state==="active"?(isOnline(user)?s.people.online:s.people.offline):s.people.status[state]}</p></div><div className="user-buttons"><QuickConnectionLinks user={user}/><Button variant="secondary" disabled={access.readOnly||topic.stale} onClick={()=>select("settings")}>{s.people.actions.edit}</Button><button type="button" className="user-menu-trigger" aria-label={s.people.actions.menu} onClick={()=>setIntent("menu")}><IconMore/></button></div></header>
+          <PageHeader title={username} back={<Link to="/people" aria-label={s.common.back}><IconChevronLeft aria-hidden="true"/>{s.people.title}</Link>} meta={<span className={state!=="active"?"text-warn":isOnline(user)?"text-ok":"text-text-muted"}>{state==="active"?(isOnline(user)?s.people.online:s.people.offline):s.people.status[state]}</span>} actions={<><QuickConnectionLinks user={user}/><Button variant="secondary" disabled={access.readOnly||topic.stale} onClick={()=>select("settings")}>{s.people.actions.edit}</Button><button type="button" className="user-menu-trigger" aria-label={s.people.actions.menu} onClick={()=>setIntent("menu")}><IconMore/></button></>}/>
           {tab!=="settings"&&<div className="user-vitals">{[[s.people.connections,String(user.current_connections),s.people.now],[s.people.activeIps,String(user.active_unique_ips),user.max_unique_ips?`${s.people.meta.of} ${user.max_unique_ips}`:t.unlimited],[t.totalTraffic,user.traffic?formatBytes(user.traffic.observed_total_bytes,s):"—",t.totalNote]].map(([label,value,note])=><div key={label}><span>{label}</span><strong>{value}</strong><small>{note}</small></div>)}</div>}
           <nav ref={tabNav} className="user-detail-tabs" aria-label={username}>{(["overview","access","ips","schedule","settings"] as const).map(key=><button type="button" key={key} aria-current={tab===key?"page":undefined} onClick={()=>select(key)}>{key==="schedule"?s.quotaSchedule.tab:t[key]}</button>)}</nav>
           {tab==="schedule"&&<QuotaScheduleEditor username={username} onDirty={setDirty} onCancel={()=>select("overview")}/>}

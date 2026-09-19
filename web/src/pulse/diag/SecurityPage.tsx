@@ -936,18 +936,15 @@ export function SecurityPage() {
   ];
   return (
     <div className="w-full" data-testid="security-detail">
+      <DetailHeader
+        title={s.details.pages.security.title}
+        description={v.description}
+        status={sources.status}
+        freshnessMs={sources.freshnessMs}
+        nowMs={nowMs}
+        onBack={() => void navigate({ to: "/pulse" })}
+      />
       <section className="overflow-hidden rounded-2xl border border-border bg-surface">
-        <div className="px-4 py-5 sm:px-5">
-          <DetailHeader
-            title={s.details.pages.security.title}
-            description={v.description}
-            breadcrumb={v.breadcrumb}
-            status={sources.status}
-            freshnessMs={sources.freshnessMs}
-            nowMs={nowMs}
-            onBack={() => void navigate({ to: "/pulse" })}
-          />
-        </div>
         <SecurityHero posture={payload?.posture} tls={tls} onReview={reviewTls} />
         <nav
           className="grid grid-cols-3 gap-1 border-b border-border bg-bg/40 px-3 py-2 sm:flex sm:overflow-x-auto"

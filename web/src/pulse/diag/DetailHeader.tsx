@@ -1,7 +1,6 @@
 import { useStrings } from "../../i18n";
-import { cn } from "../../lib/cn";
 import { IconChevronLeft } from "../../ui/icons";
-import { SectionLabel } from "../../ui/SectionLabel";
+import { PageHeader } from "../../ui/PageHeader";
 import { StatePill, type State } from "../../ui/StatePill";
 import { formatRelativeAge } from "../formatting";
 import type { SourceStatus } from "../sourceState";
@@ -27,12 +26,11 @@ export interface DetailHeaderProps {
   title: string;
   /** The page's lede — hidden in compact landscape (§15.3). */
   description?: string;
-  /** Uppercase trail above the title ("ПУЛЬС / DETAILS"). */
-  breadcrumb?: string;
+  /** Parent section label for the back affordance. */
+  backLabel?: string;
   /**
    * §15.3's compressed header: on a phone in landscape the whole viewport
-   * is 390 px tall, so the secondary trail and the lede are dropped and the
-   * title steps down a size. Nothing that carries STATE goes away — the
+   * is 390 px tall, so the lede is dropped. Nothing that carries STATE goes away — the
    * age, the status pill and the back affordance stay.
    */
   compact?: boolean;
@@ -52,7 +50,7 @@ export interface DetailHeaderProps {
 export function DetailHeader({
   title,
   description,
-  breadcrumb,
+  backLabel,
   compact = false,
   status,
   statusLabel,
@@ -64,30 +62,21 @@ export function DetailHeader({
   const age = freshnessMs === null ? null : formatRelativeAge(freshnessMs, s, nowMs);
 
   return (
-    <header className={cn("flex flex-col", compact ? "gap-1" : "gap-2")}>
-      {onBack && (
+    <PageHeader
+      title={title}
+      description={description}
+      compact={compact}
+      back={onBack && (
         <button
           type="button"
           onClick={onBack}
-          className="tap-target -ml-2 inline-flex items-center gap-1 self-start px-2 text-meta text-text-muted hover:text-text"
+          aria-label={`${s.details.page.back}: ${backLabel ?? s.pulse.title}`}
         >
-          <IconChevronLeft />
-          {s.details.page.back}
+          <IconChevronLeft aria-hidden="true" />
+          {backLabel ?? s.pulse.title}
         </button>
       )}
-      {breadcrumb !== undefined && !compact && (
-        <SectionLabel className="text-accent">{breadcrumb}</SectionLabel>
-      )}
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h1
-          className={cn(
-            "min-w-0 break-words font-bold text-text",
-            compact ? "text-lg" : "text-title",
-          )}
-        >
-          {title}
-        </h1>
-        <div className="flex shrink-0 items-center gap-2">
+      meta={<>
           {age && (
             <span className="text-meta tabular-nums text-text-muted" title={age.title}>
               {s.details.freshness.updated} {age.text}
@@ -96,11 +85,7 @@ export function DetailHeader({
           <StatePill state={STATUS_TONE[status]} title={statusLabel??sourceStatusLabel(status, s)}>
             {statusLabel??sourceStatusShortLabel(status, s)}
           </StatePill>
-        </div>
-      </div>
-      {description !== undefined && description !== "" && !compact && (
-        <p className="max-w-prose text-meta leading-relaxed text-text-muted">{description}</p>
-      )}
-    </header>
+      </>}
+    />
   );
 }

@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
+import { PageHeader } from "../ui/PageHeader";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fill, useLocale, useStrings, type Dict } from "../i18n";
@@ -100,21 +101,12 @@ export function ServerMenu() {
 
   return (
     <div className="server-hub">
-      <header className="server-hub-head">
-        <div className="server-hub-title">
-          <span aria-hidden="true" className="server-hub-title-icon">
-            <IconPlatform />
-          </span>
-          <div>
-            <span>{hub.eyebrow}</span>
-            <h1>{s.server.title}</h1>
-          </div>
-        </div>
+      <PageHeader title={s.server.title} meta={
         <span className={`server-hub-state is-${status}`}>
           <i aria-hidden="true" />
           {statusCopy}
         </span>
-      </header>
+      } />
 
       <section className="server-hub-overview" aria-labelledby="server-hub-overview-title">
         <div className="server-hub-overview-copy">

@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { PageHeader } from "../../ui/PageHeader";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fill, type Dict, useStrings } from "../../i18n";
@@ -342,28 +343,25 @@ export function PulseHub() {
       : fill(s.hub.current, { age: formatRelativeAge(oldestFreshness, s, nowMs).text });
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
-        <div className="min-w-0">
-          <h1 className="text-title font-extrabold tracking-tight text-text">{s.pulse.title}</h1>
-          <p className="mt-1 text-meta text-text-muted">{s.hub.lede}</p>
-        </div>
-        <span className={cn("flex shrink-0 items-center gap-2 pt-1 text-[10px]", freshnessProblem ? "text-warn" : "text-text-faint")}>
+    <div className="w-full">
+      <PageHeader title={s.pulse.title} description={s.hub.lede} meta={
+        <span className={cn("flex items-center gap-2", freshnessProblem ? "text-warn" : "text-text-faint")}>
           <i className={cn("h-1.5 w-1.5 rounded-full", freshnessProblem ? "bg-warn" : "bg-ok")} />{globalFreshness}
         </span>
-      </header>
+      } />
+      <div className="flex flex-col gap-6">
+        <AttentionBanner cards={cards} />
+        <HubGroup title={s.hub.groups.traffic} note={s.hub.groups.trafficNote} cards={traffic} nowMs={nowMs} />
+        <TrafficAnalytics />
+        <HubGroup title={s.hub.groups.evidence} note={s.hub.groups.evidenceNote} cards={evidence} nowMs={nowMs} />
 
-      <AttentionBanner cards={cards} />
-      <HubGroup title={s.hub.groups.traffic} note={s.hub.groups.trafficNote} cards={traffic} nowMs={nowMs} />
-      <TrafficAnalytics />
-      <HubGroup title={s.hub.groups.evidence} note={s.hub.groups.evidenceNote} cards={evidence} nowMs={nowMs} />
-
-      {webCard && (
-        <section className="flex flex-col gap-2.5">
-          <h2 className="px-0.5 text-[13px] font-bold text-text">{s.hub.groups.additional}</h2>
-          <WebSourceRow card={webCard} nowMs={nowMs} />
-        </section>
-      )}
+        {webCard && (
+          <section className="flex flex-col gap-2.5">
+            <h2 className="px-0.5 text-[13px] font-bold text-text">{s.hub.groups.additional}</h2>
+            <WebSourceRow card={webCard} nowMs={nowMs} />
+          </section>
+        )}
+      </div>
     </div>
   );
 }

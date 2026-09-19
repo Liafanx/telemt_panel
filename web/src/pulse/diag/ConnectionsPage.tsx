@@ -469,17 +469,15 @@ export function ConnectionsPage() {
 
   return (
     <div className="w-full" data-testid="connections-detail">
+      <DetailHeader
+        title={s.details.pages.connections.title}
+        description={s.details.pages.connections.description}
+        status={sources.status}
+        freshnessMs={sources.freshnessMs}
+        nowMs={nowMs}
+        onBack={() => void navigate({ to: "/pulse" })}
+      />
       <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="border-b border-border px-4 py-4 sm:px-5">
-          <DetailHeader
-            title={s.details.pages.connections.title}
-            description={s.details.pages.connections.description}
-            status={sources.status}
-            freshnessMs={sources.freshnessMs}
-            nowMs={nowMs}
-            onBack={() => void navigate({ to: "/pulse" })}
-          />
-        </div>
 
         {stats.data === null ? (
           <div className="grid min-h-56 place-items-center px-5 text-center">
