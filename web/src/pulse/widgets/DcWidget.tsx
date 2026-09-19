@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { useSnapshot } from "../../realtime";
-import type { DcStatus, UpstreamsTopic } from "../../realtime/topics";
+import type { DcStatus, UpstreamsTopic,RuntimeTopic } from "../../realtime/topics";
 import { Skeleton } from "../../ui/Skeleton";
 import { EmptyState } from "../../ui/EmptyState";
 import { StatePill } from "../../ui/StatePill";
 import { fill, formatNumber, useStrings } from "../../i18n";
 import { cn } from "../../lib/cn";
 import { WidgetFrame } from "../WidgetFrame";
-import { GatedNote } from "../GatedNote";
+import {MeSourceNotice} from '../MeSourceNotice';
+import {meAvailability} from '../meAvailability';
 import { dcEntityKey } from "../diag/dc.helpers";
 import {
   computeDc,
@@ -33,8 +34,12 @@ const COVERAGE_GRADIENT: Record<RouteState, string> = {
 export function DcWidget() {
   const s = useStrings();
   const topic = useSnapshot<UpstreamsTopic>("upstreams");
+  const runtime=useSnapshot<RuntimeTopic>('runtime');
   const view = computeDc(topic.data?.dcs ?? null);
-  const groups = view.status === "ok" ? dcRouteGroups(view.dcs) : [];
+  const availability=meAvailability(runtime,view.status==='ok',view.status==='disabled'?view.reason:undefined,true);
+  const notice=availability==='direct'||topic.data?availability:null;
+  const blocked=notice!==null&&!(notice==='fallback'&&view.status==='ok');
+  const groups = view.status === "ok"&&!blocked ? dcRouteGroups(view.dcs) : [];
   const hasAttention = view.status === "ok" && view.dcs.some((dc) => dcRouteState(dc) !== "ok");
 
   return (
@@ -44,7 +49,7 @@ export function DcWidget() {
       className="overview-dcs"
       stale={topic.stale}
       badge={
-        view.status === "ok" && view.dcs.length > 0 ? (
+        !blocked && view.status === "ok" && view.dcs.length > 0 ? (
           <span
             className={cn(
               "shrink-0 whitespace-nowrap text-micro font-semibold tabular-nums text-accent",
@@ -64,10 +69,10 @@ export function DcWidget() {
         ) : undefined
       }
     >
-      {view.status === "loading" && <Skeleton className="h-64 w-full" />}
-      {view.status === "disabled" && <GatedNote reason={view.reason} />}
-      {view.status === "ok" && view.dcs.length === 0 && <EmptyState title={s.pulse.dc.empty} />}
-      {view.status === "ok" && view.dcs.length > 0 && (
+      {!notice&&view.status === "loading" && <Skeleton className="h-64 w-full" />}
+      {notice&&<MeSourceNotice state={notice} available={view.status==='ok'}/>}
+      {!blocked&&view.status === "ok" && view.dcs.length === 0 && <EmptyState title={s.pulse.dc.empty} />}
+      {!blocked&&view.status === "ok" && view.dcs.length > 0 && (
         <div className="overview-dc-board grid gap-x-4 gap-y-5" data-testid="dc-board">
           {groups.map((group) => (
             <DcGroup key={group.id} group={group} />

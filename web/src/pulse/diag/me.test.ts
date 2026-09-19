@@ -71,6 +71,10 @@ describe("mePagePayload", () => {
 });
 
 describe("meRouteMode", () => {
+  it('keeps missing runtime unknown and prefers explicit Direct over old writer data',()=>{
+    expect(meRouteMode(null,null)).toBe('unknown');
+    expect(meRouteMode({...gates,use_middle_proxy:false,route_mode:'direct',reroute_active:false},meWriters)).toBe('direct');
+  });
   it("distinguishes configured ME, fallback, and direct-only operation", () => {
     expect(
       meRouteMode(

@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AsyncState } from "../components/AsyncState";
 import { Button } from "../ui/Button";
-import { IconArrowDown, IconArrowUp, IconPeople, IconPlus, IconSearch, IconSort } from "../ui/icons";
+import { IconArrowDown, IconArrowUp, IconClose, IconPeople, IconPlus, IconSearch, IconSort } from "../ui/icons";
 import { CardList, CardRow } from "../ui/Card";
 import { Sheet } from "../ui/Sheet";
 import { pluralTemplate, useStrings, type Dict } from "../i18n";
@@ -38,14 +38,11 @@ import type { UsersTopicUser } from "../realtime/topics";
 const FILTER_ORDER: readonly UserFilter[] = ["all", "online", "issues"];
 const PHONE_LIST_QUERY = "(max-width: 650px)";
 
-// View state survives the phone route temporarily replacing the list with
-// a detail screen. It contains no user data or credentials.
-const savedView = { search: "", filter: "all" as UserFilter, scrollOffset: 0, returnUsername: null as string | null };
-
 export function PeopleList() {
   const s = useStrings();
   const topic = useUsersTopic();
   const access = useContext(PeopleContext);
+  const savedView = access.listView;
   const bulkQuota = useBulkQuota();
   const connection = useConnectionState();
   const now = useNow();
@@ -54,7 +51,8 @@ export function PeopleList() {
   const searchRef = useRef<HTMLInputElement>(null);
   const phoneListLayout = usePhoneListLayout();
   const [search, setSearch] = useState(savedView.search);
-  const debouncedSearch = useDebouncedValue(search);
+  const delayedSearch = useDebouncedValue(search);
+  const debouncedSearch = search.trim() === "" ? "" : delayedSearch;
   const [filter, setFilter] = useState<UserFilter>(savedView.filter);
   const [sort, setSort] = useState(() => getStoredUserSort());
   const [actionUser, setActionUser] = useState<UsersTopicUser | null>(null);
@@ -120,7 +118,7 @@ export function PeopleList() {
       savedView.scrollOffset = scrollRef.current?.scrollTop ?? savedView.scrollOffset;
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [topic.isPending, visibleUsers, virtualizer]);
+  }, [topic.isPending, visibleUsers, virtualizer, savedView]);
 
   useEffect(() => {
     function focusSearch(event: KeyboardEvent) {
@@ -136,7 +134,10 @@ export function PeopleList() {
   function setSearchValue(value: string) {
     setSwiped(null);
     savedView.search = value;
+    savedView.returnUsername = null;
+    savedView.scrollOffset = 0;
     setSearch(value);
+    virtualizer.scrollToOffset(0);
   }
 
   function setFilterValue(value: UserFilter) {
@@ -176,11 +177,11 @@ export function PeopleList() {
       <div className="flex min-h-0 flex-1 gap-3">
         <section className="people-list-pane flex min-w-0 flex-1 flex-col">
           <div className="people-toolbar">
-            <label className="people-search-control">
+            <div className="people-search-control">
               <IconSearch className="h-4 w-4 shrink-0" />
               <input ref={searchRef} value={search} onChange={(event) => setSearchValue(event.target.value)} placeholder={s.people.searchPlaceholder} aria-label={s.people.searchPlaceholder} autoCapitalize="off" autoCorrect="off" />
-              <kbd>⌘ K</kbd>
-            </label>
+              {search ? <button type="button" className="people-search-clear" aria-label={s.people.clearSearch} onClick={()=>{setSearchValue("");searchRef.current?.focus();}}><IconClose className="h-4 w-4"/></button> : <kbd>⌘ K</kbd>}
+            </div>
             <div className="people-filter-group no-scrollbar" role="tablist" aria-label={s.people.filterLabel}>
               {filterOrder.map((key) => <button key={key} type="button" role="tab" className="people-filter-button" aria-selected={filter === key} onClick={() => setFilterValue(key)}>{s.people.filter[key]}<b>{counts[key]}</b></button>)}
             </div>

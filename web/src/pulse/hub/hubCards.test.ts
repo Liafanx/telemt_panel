@@ -102,6 +102,22 @@ const DOMAIN_ORDER = [
 ] as const;
 
 describe("the nine hub cards", () => {
+  it('shows Direct instead of disabled ME/DC diagnostics, even before old pool data clears',()=>{
+    const runtime=topic<RuntimeTopic>({...runtimeSnapshot,gates:{...runtimeSnapshot.gates!,use_middle_proxy:false,route_mode:'direct',reroute_active:false}});
+    for(const card of buildHubCards(inputs({runtime}),ru).filter(c=>c.domain==='me'||c.domain==='dc')){
+      expect(card.pillLabel).toContain('Direct');expect(card.health).toBe('muted');expect(card.metrics).toEqual([]);expect(card.gate?.hint).toBeUndefined();
+    }
+  });
+  it('does not infer Direct from a stale runtime snapshot',()=>{
+    const runtime=topic<RuntimeTopic>({...runtimeSnapshot,gates:{...runtimeSnapshot.gates!,use_middle_proxy:false,route_mode:'direct',reroute_active:false}},{stale:true});
+    for(const card of buildHubCards(inputs({runtime}),ru).filter(c=>c.domain==='me'||c.domain==='dc'))expect(card.pillLabel).not.toContain('Direct');
+  });
+  it('marks fallback while keeping available ME/DC diagnostics',()=>{
+    const runtime=topic<RuntimeTopic>({...runtimeSnapshot,gates:{...runtimeSnapshot.gates!,use_middle_proxy:true,route_mode:'direct',reroute_active:true}});
+    for(const card of buildHubCards(inputs({runtime}),ru).filter(c=>c.domain==='me'||c.domain==='dc')){
+      expect(card.pillLabel).toContain('Fallback');expect(card.health).toBe('warn');expect(card.metrics.length).toBeGreaterThan(0);
+    }
+  });
   it("covers every diagnostics domain exactly once, in the IA's order", () => {
     expect(HUB_DOMAINS.map((d) => d.domain)).toEqual([...DOMAIN_ORDER]);
     expect(buildHubCards(inputs(), ru).map((c) => c.domain)).toEqual([...DOMAIN_ORDER]);

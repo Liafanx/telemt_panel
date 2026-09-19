@@ -1,4 +1,6 @@
 .users-workspace .people-toolbar { grid-template-columns:minmax(180px,1fr) auto auto; }
+.people-search-clear { display:grid; place-items:center; flex:none; width:44px; height:44px; margin-block:-8px; margin-right:-8px; border-radius:8px; color:rgb(var(--text-muted)); }
+.people-search-clear:hover { background:rgb(var(--surface-2)); color:rgb(var(--text)); }
 .user-table-head,.user-row-shell { display:grid; grid-template-columns:minmax(130px,1.5fr) minmax(100px,.7fr) minmax(140px,1fr) minmax(100px,.7fr) 252px; gap:14px; align-items:center; padding:0 18px; }
 .user-table-head { min-height:44px; border-bottom:1px solid rgb(var(--border)); color:rgb(var(--text-muted)); font-size:12px; }
 .user-row-shell { position:relative; height:84px; border-bottom:1px solid rgb(var(--border)); background:rgb(var(--surface)); color:rgb(var(--text)); }

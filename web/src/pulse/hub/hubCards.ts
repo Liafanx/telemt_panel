@@ -54,6 +54,7 @@ import {
 } from "../sourceState";
 import { dcRttTone } from "../widgets/dc.helpers";
 import { resolveGated } from "../widgets/gated";
+import {meAvailability,meAvailabilityText,type MeAvailability} from '../meAvailability';
 import { connectionQuality, historyWindowDelta, windowSeries } from "../widgets/statRow.helpers";
 import type { DiagDomain } from "../types";
 import {
@@ -81,6 +82,7 @@ export interface HubCardGate {
 }
 
 export interface HubCard {
+  notice?:MeAvailability;
   domain: DiagDomain;
   title: string;
   status: SourceStatus;
@@ -602,6 +604,10 @@ function cardHealth(
 export function buildHubCards(inputs: HubInputs, s: Dict): HubCard[] {
   return HUB_DOMAINS.map((spec) => {
     const state = resolveSource(spec.domain, spec.source(inputs));
+    const availability=spec.domain==='dc'||spec.domain==='me'
+      ? meAvailability(inputs.runtime,state.hasData&&state.status!=='disabled'&&state.status!=='unsupported',state.reason,true)
+      : null;
+    const notice=state.status==='loading'&&availability!=='direct'?null:availability;
     const gate: HubCardGate | null =
       state.status === "disabled" || state.status === "unsupported"
         ? {
@@ -615,8 +621,8 @@ export function buildHubCards(inputs: HubInputs, s: Dict): HubCard[] {
           }
         : null;
 
-    const metrics = gate === null && state.hasData ? spec.metrics(inputs, s) : [];
-    const health = cardHealth(spec, state.status, metrics);
+    const metrics = (!notice||notice==='fallback') && gate === null && state.hasData ? spec.metrics(inputs, s) : [];
+    const health = notice==='direct'?'muted':notice==='fallback'?'warn':cardHealth(spec, state.status, metrics);
 
     return {
       domain: spec.domain,
@@ -624,11 +630,12 @@ export function buildHubCards(inputs: HubInputs, s: Dict): HubCard[] {
       status: state.status,
       freshnessMs: state.freshnessMs,
       health,
-      healthLabel: healthLabel(health, s),
-      pill: PILL_STATE[state.status],
-      pillLabel: sourceStatusShortLabel(state.status, s),
+      healthLabel: notice?meAvailabilityText(notice,s).label:healthLabel(health, s),
+      pill: notice==='direct'?'muted':PILL_STATE[state.status],
+      pillLabel: notice?meAvailabilityText(notice,s).label:sourceStatusShortLabel(state.status, s),
       metrics,
-      gate,
+      gate:notice==='direct'?null:gate,
+      ...(notice?{notice}:{}),
     };
   });
 }

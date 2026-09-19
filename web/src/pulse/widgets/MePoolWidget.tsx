@@ -7,7 +7,8 @@ import { cn } from "../../lib/cn";
 import { WidgetFrame } from "../WidgetFrame";
 import { resolveGated } from "./gated";
 import { computeMeCard, meReasonText, type MeCardView } from "./mePool.helpers";
-import { GatedNote } from "../GatedNote";
+import {MeSourceNotice} from '../MeSourceNotice';
+import {meAvailability} from '../meAvailability';
 
 // MePoolWidget — «ME» as concept §10's subsystem card, one third of the
 // infrastructure row §13 puts ME, WEB and Апстримы on. It used to be five
@@ -30,19 +31,21 @@ export function MePoolWidget() {
   }
 
   const pool = resolveGated(topic.data.me_pool_state);
-  if (pool.status === "gated") {
+  const availability=meAvailability(topic,pool.status==='ok',pool.status==='gated'?pool.reason:undefined);
+  if (pool.status==='gated'||availability==='direct') {
     return (
       <WidgetFrame title={s.pulse.widgets.me_pool} diagDomain="me" stale={topic.stale}>
-        <GatedNote reason={pool.reason} hint="runtime_edge" />
+        <MeSourceNotice state={availability??'unavailable'}/>
       </WidgetFrame>
     );
   }
+
 
   const quality = resolveGated(topic.data.me_quality);
   const view = computeMeCard(
     pool.data,
     quality.status === "ok" ? quality.data : undefined,
-    topic.data.gates,
+    !topic.stale&&!topic.error?topic.data.gates:null,
   );
 
   return (
@@ -54,6 +57,7 @@ export function MePoolWidget() {
     >
       <div
         data-testid="me-card"
+        data-me-availability={availability??undefined}
         className="flex flex-col gap-1"
       >
         <MeBody

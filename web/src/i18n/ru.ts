@@ -142,6 +142,7 @@ export const ru = {
     placeholderDescription: "Экран появится в одной из следующих задач.",
   },
   people: {
+    clearSearch:"Очистить поиск",
     bulkQuota: {
       unconfirmed:"Telemt не подтвердил результат сброса",
       empty:"Нет пользователей для сброса расхода квот.",
@@ -598,6 +599,15 @@ export const ru = {
     },
   },
   pulse: {
+    meAvailability:{
+      unknown:"Текущий режим неизвестен",
+      fallbackAvailableNote:"Трафик переведён с ME на Direct. Доступные показатели пула ME сохранены для диагностики и не означают, что трафик идёт через ME.",
+      direct:"Не используется в режиме Direct",directNote:"ME отключён. Данные о покрытии и писателях DC относятся к пулу ME и в режиме Direct не собираются.",
+      fallback:"Активен Fallback → Direct",fallbackNote:"Трафик переведён с ME на Direct. Данные пула ME сейчас недоступны; это не отключение runtime_edge.",
+      unavailable:"Данные ME недоступны",unavailableNote:"Источник не предоставил данные пула. Это само по себе не означает, что диагностика выключена. Проверьте актуальный режим и подключение к Telemt.",
+      minimal_disabled:"Минимальная диагностика выключена",minimal_disabledNote:"Telemt сообщил feature_disabled. Для этих показателей включите minimal_runtime_enabled = true в конфиге Telemt.",
+      unsupported:"Диагностика не поддерживается",unsupportedNote:"Эта версия Telemt не предоставляет необходимые данные. Для их просмотра требуется обновление Telemt.",
+    },
     title: "Пульс",
     diagLink: "Детали",
     widgets: {

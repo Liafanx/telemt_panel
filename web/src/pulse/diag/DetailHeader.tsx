@@ -37,6 +37,7 @@ export interface DetailHeaderProps {
    */
   compact?: boolean;
   status: SourceStatus;
+  statusLabel?:string;
   /** Normalized epoch ms of the payload on screen (sourceState.ts). */
   freshnessMs: number | null;
   /** One clock for the whole page. */
@@ -54,6 +55,7 @@ export function DetailHeader({
   breadcrumb,
   compact = false,
   status,
+  statusLabel,
   freshnessMs,
   nowMs,
   onBack,
@@ -91,8 +93,8 @@ export function DetailHeader({
               {s.details.freshness.updated} {age.text}
             </span>
           )}
-          <StatePill state={STATUS_TONE[status]} title={sourceStatusLabel(status, s)}>
-            {sourceStatusShortLabel(status, s)}
+          <StatePill state={STATUS_TONE[status]} title={statusLabel??sourceStatusLabel(status, s)}>
+            {statusLabel??sourceStatusShortLabel(status, s)}
           </StatePill>
         </div>
       </div>

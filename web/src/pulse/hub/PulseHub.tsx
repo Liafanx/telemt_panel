@@ -6,6 +6,8 @@ import { cn } from "../../lib/cn";
 import { getTelemtZeroOptions } from "../../lib/api/generated/@tanstack/react-query.gen";
 import { useNow } from "../../people/useNow";
 import { useSnapshot } from "../../realtime";
+import {MeSourceNotice} from '../MeSourceNotice';
+import {meAvailabilityText} from '../meAvailability';
 import type {
   RuntimeTopic,
   SecurityTopic,
@@ -205,6 +207,7 @@ function HubCardView({ card, nowMs }: { card: HubCard; nowMs: number }) {
         <span className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-surface-2 text-text-faint transition-colors group-hover:text-text"><IconChevronRight className="h-3.5 w-3.5" /></span>
       </div>
 
+      {primary&&card.notice==='fallback'&&<p className="mt-3 text-meta text-text-muted" data-me-availability="fallback">{meAvailabilityText('fallback',s,true).description}</p>}
       {primary ? (
         <>
           <div className="mt-4 flex min-h-11 items-end gap-2">
@@ -222,7 +225,7 @@ function HubCardView({ card, nowMs }: { card: HubCard; nowMs: number }) {
             </div>
           )}
         </>
-      ) : <p className="mt-4 text-[11px] leading-relaxed text-text-muted">{s.hub.unavailable}</p>}
+      ) : card.notice?<div className="mt-4"><MeSourceNotice state={card.notice}/></div>:<p className="mt-4 text-[11px] leading-relaxed text-text-muted">{s.hub.unavailable}</p>}
     </Link>
   );
 }

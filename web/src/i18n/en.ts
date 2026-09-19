@@ -118,6 +118,7 @@ export const en: Dict = {
     placeholderDescription: "This screen arrives in one of the next tasks.",
   },
   people: {
+    clearSearch:"Clear search",
     bulkQuota: {
       unconfirmed:"Telemt did not confirm the reset outcome",
       empty:"There are no users whose quota usage can be reset.",
@@ -550,6 +551,15 @@ export const en: Dict = {
     },
   },
   pulse: {
+    meAvailability:{
+      unknown:"Current route mode unknown",
+      fallbackAvailableNote:"Traffic has switched from ME to Direct. Available ME pool metrics remain visible for diagnostics; they do not mean traffic is using ME.",
+      direct:"Not used in Direct mode",directNote:"ME is disabled. DC coverage and writer metrics describe the ME pool and are not collected in Direct mode.",
+      fallback:"Fallback → Direct is active",fallbackNote:"Traffic has switched from ME to Direct. ME pool data is currently unavailable; this does not mean runtime_edge is disabled.",
+      unavailable:"ME data unavailable",unavailableNote:"The source did not provide pool data. This alone does not mean diagnostics are disabled. Check the current route mode and Telemt connectivity.",
+      minimal_disabled:"Minimal diagnostics disabled",minimal_disabledNote:"Telemt reported feature_disabled. Enable minimal_runtime_enabled = true in the Telemt configuration for these metrics.",
+      unsupported:"Diagnostics not supported",unsupportedNote:"This Telemt version does not provide the required data. Update Telemt to view these metrics.",
+    },
     title: "Pulse",
     diagLink: "Details",
     widgets: {

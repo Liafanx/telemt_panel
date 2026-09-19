@@ -24,7 +24,7 @@ export interface MePagePayload {
   me_runtime?: RuntimeMinimalMeRuntime;
 }
 
-export type MeRouteMode = "middle" | "fallback" | "direct";
+export type MeRouteMode = "middle" | "fallback" | "direct" | "unknown";
 
 // Direct-only is a valid configuration, while fallback is a separate runtime
 // decision. Keeping the three modes explicit prevents a disabled ME pool from
@@ -33,6 +33,7 @@ export function meRouteMode(
   gates: RuntimeGates | null,
   writers: MeWritersData | null,
 ): MeRouteMode {
+  if(gates?.use_middle_proxy===false&&gates.route_mode==='direct'&&gates.reroute_active===false)return 'direct';
   if (
     gates?.reroute_active ||
     (gates?.use_middle_proxy === true && gates.route_mode.toLowerCase() === "direct")
@@ -40,7 +41,7 @@ export function meRouteMode(
     return "fallback";
   }
   if (gates?.use_middle_proxy === true || writers?.middle_proxy_enabled === true) return "middle";
-  return "direct";
+  return "unknown";
 }
 
 export interface MeSourcesInput {

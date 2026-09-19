@@ -24,6 +24,8 @@ import { resolveGated } from "../widgets/gated";
 import { DetailHeader } from "./DetailHeader";
 import { mePagePayload, meRouteMode, type MeRouteMode } from "./me.helpers";
 import { meSources } from "./sourceDefinitions";
+import {MeSourceNotice} from '../MeSourceNotice';
+import {meAvailability,meAvailabilityText} from '../meAvailability';
 
 type MeTab = "overview" | "writers" | "quality" | "initialization" | "runtime";
 type WriterFilter = "all" | "active" | "degraded" | "draining";
@@ -186,14 +188,14 @@ function RouteHero({
   const rtt = percentile95(rows);
   const reserve = summary ? summary.alive_writers - summary.required_writers : null;
   const modeTitle =
-    mode === "middle" ? v.modeMiddle : mode === "fallback" ? v.modeFallback : v.modeDirect;
+    mode === "middle" ? v.modeMiddle : mode === "fallback" ? v.modeFallback : mode==='direct'?v.modeDirect:s.pulse.meAvailability.unknown;
   const description =
     mode === "middle"
       ? v.modeMiddleDescription
       : mode === "fallback"
         ? v.modeFallbackDescription
-        : v.modeDirectDescription;
-  const mark = mode === "middle" ? "ME" : "D";
+        : mode==='direct'?v.modeDirectDescription:s.pulse.meAvailability.unavailableNote;
+  const mark = mode === "middle" ? "ME" : mode==='unknown'?'?':"D";
 
   return (
     <section
@@ -225,7 +227,7 @@ function RouteHero({
           >
             {mode === "fallback" && gates?.reroute_reason
               ? `reroute_active · ${gates.reroute_reason}`
-              : `route_mode: ${gates?.route_mode ?? (mode === "middle" ? "middle" : "direct")}`}
+              : `route_mode: ${gates?.route_mode ?? '—'}`}
           </p>
         </div>
       </div>
@@ -362,16 +364,16 @@ function RouteReadiness({
   const summary = writers?.summary;
   const drainOpen = quality?.drain_gate.route_quorum_ok && quality.drain_gate.redundancy_ok;
   const modeLabel =
-    mode === "middle" ? v.modeMiddle : mode === "fallback" ? v.modeFallback : v.modeDirect;
+    mode === "middle" ? v.modeMiddle : mode === "fallback" ? v.modeFallback : mode==='direct'?v.modeDirect:s.pulse.meAvailability.unknown;
   const note =
-    mode === "middle" ? v.reserveNote : mode === "fallback" ? v.fallbackNote : v.directNote;
+    mode === "middle" ? v.reserveNote : mode === "fallback" ? v.fallbackNote : mode==='direct'?v.directNote:s.pulse.meAvailability.unavailableNote;
   const rows = [
-    [v.newSessions, v.routeMode, modeLabel, mode === "fallback" ? "warn" : "ok"],
+    [v.newSessions, v.routeMode, modeLabel, mode === "fallback" ? "warn" : mode==='unknown'?'muted':"ok"],
     [
       v.meRuntime,
       v.ready,
-      gates?.me_runtime_ready ? v.ready : v.notReady,
-      gates?.me_runtime_ready ? "ok" : "warn",
+      gates ? (gates.me_runtime_ready ? v.ready : v.notReady) : '—',
+      gates ? (gates.me_runtime_ready ? "ok" : "warn") : 'muted',
     ],
     [
       v.degradedWriters,
@@ -411,7 +413,7 @@ function RouteReadiness({
               <span className="block text-meta text-text-muted">{label}</span>
               <small className="block text-micro text-text-faint">{detail}</small>
             </div>
-            <strong className={cn("shrink-0 text-meta", tone === "warn" ? "text-warn" : "text-ok")}>
+            <strong className={cn("shrink-0 text-meta", tone === "warn" ? "text-warn" : tone==='ok'?"text-ok":"text-text-muted")}>
               {value}
             </strong>
           </div>
@@ -1288,9 +1290,11 @@ export function MePage() {
   const quality = qualityGate?.status === "ok" ? qualityGate.data : undefined;
   const selftest = selftestGate?.status === "ok" ? selftestGate.data : undefined;
   const runtimeSettings = minimalGate?.status === "ok" ? minimalGate.data.me_runtime : undefined;
-  const gates = runtime.data?.gates ?? null;
+  const gates = !runtime.stale&&!runtime.error ? runtime.data?.gates ?? null : null;
   const initialization = runtime.data?.initialization ?? null;
-  const mode = meRouteMode(gates, meWriters);
+  const mode = runtime.stale||runtime.error?'unknown':meRouteMode(gates,gates?meWriters:null);
+  const availability=meAvailability(runtime,!!pool, runtime.data?.me_pool_state?.reason);
+  const notice=availability==='direct'||runtime.data||runtime.error?availability:null;
 
   const payload = mePagePayload({
     meWriters,
@@ -1357,7 +1361,8 @@ export function MePage() {
           <DetailHeader
             title={s.details.pages.me.title}
             description={s.details.pages.me.description}
-            status={sources.status}
+            status={notice==='direct'?'empty':notice==='fallback'?'partial':sources.status}
+            statusLabel={notice?meAvailabilityText(notice,s).label:undefined}
             freshnessMs={sources.freshnessMs}
             nowMs={nowMs}
             onBack={() => void navigate({ to: "/pulse" })}
@@ -1377,7 +1382,8 @@ export function MePage() {
           </div>
         ) : (
           <>
-            <RouteHero mode={mode} writers={meWriters} gates={gates} s={s} />
+            {notice?<div className="border-b border-border px-4 py-5 sm:px-5"><MeSourceNotice state={notice} available={!!pool}/></div>:<RouteHero mode={mode} writers={meWriters} gates={gates} s={s} />}
+            {notice!=='direct'&&<>
             <div
               className="border-b border-border px-3 pt-2"
               role="tablist"
@@ -1441,6 +1447,7 @@ export function MePage() {
               )}
             </div>
 
+            </>}
             <details
               className="group border-t border-border px-4 py-4 sm:px-5"
               data-testid="me-technical"

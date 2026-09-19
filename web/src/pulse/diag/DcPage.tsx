@@ -19,6 +19,8 @@ import { resolveGated } from "../widgets/gated";
 import { DetailHeader } from "./DetailHeader";
 import { dcPagePayload } from "./dc.helpers";
 import { dcSources } from "./sourceDefinitions";
+import {MeSourceNotice} from '../MeSourceNotice';
+import {meAvailability,meAvailabilityText} from '../meAvailability';
 
 type PairTone = "ok" | "warn" | "error" | "latency";
 type RouteIssue = "coverage" | "fresh" | "endpoints" | "latency" | null;
@@ -411,6 +413,8 @@ export function DcPage() {
     runtime: { kind: "topic", snapshot: runtime, gated: runtime.data?.minimal ?? null },
   };
   const sources = useDetailSources(dcSources, inputs);
+  const availability=meAvailability(runtime,!!dcs?.middle_proxy_enabled,dcs?.reason,true);
+  const notice=availability==='direct'||dcs||upstreams.error?availability:null;
 
   const pairs = dcRouteGroups(payload?.dcs ?? []);
   const defaultPair =
@@ -452,14 +456,16 @@ export function DcPage() {
           <DetailHeader
             title={s.details.pages.dc.title}
             description={s.details.pages.dc.description}
-            status={sources.status}
+            status={notice==='direct'?'empty':notice==='fallback'?'partial':sources.status}
+            statusLabel={notice?meAvailabilityText(notice,s).label:undefined}
             freshnessMs={sources.freshnessMs}
             nowMs={nowMs}
             onBack={() => void navigate({ to: "/pulse" })}
           />
         </div>
 
-        {payload === null ? (
+        {notice==='fallback'&&pairs.length>0&&<div className="px-4 py-5 sm:px-5"><MeSourceNotice state={notice} available/></div>}
+        {notice&&(notice!=='fallback'||pairs.length===0) ? <div className="px-4 py-5 sm:px-5"><MeSourceNotice state={notice}/></div> : payload === null ? (
           <div className="grid min-h-56 place-items-center px-5 text-center">
             <div>
               <p className="text-h3 font-semibold text-text">
