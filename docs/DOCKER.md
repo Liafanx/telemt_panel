@@ -1,6 +1,6 @@
 # Docker: тестовый выпуск 1.0
 
-Образ: `ghcr.io/amirotin/telemt_panel:1.0.0-rc.1` — **prerelease**, Linux
+Образ: `ghcr.io/amirotin/telemt_panel:1.0.0-rc.2` — **prerelease**, Linux
 amd64/arm64. Docker выбирает архитектуру автоматически. Внутри — full-бинарник
 из одноимённого опубликованного релиза, SQLite и системные CA-сертификаты.
 Старый `latest` не переключён на 1.x: для тестирования указывайте полный тег.
@@ -14,7 +14,7 @@ amd64/arm64. Docker выбирает архитектуру автоматиче
 Создайте bcrypt-хеш интерактивно:
 
 ```sh
-docker run --rm -it ghcr.io/amirotin/telemt_panel:1.0.0-rc.1 hash-password
+docker run --rm -it ghcr.io/amirotin/telemt_panel:1.0.0-rc.2 hash-password
 ```
 
 Вставьте результат в `[auth].password_hash`, укажите адрес и токен API Telemt.

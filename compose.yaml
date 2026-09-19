@@ -1,6 +1,6 @@
 services:
   telemt-panel:
-    image: ghcr.io/amirotin/telemt_panel:1.0.0-rc.1
+    image: ghcr.io/amirotin/telemt_panel:1.0.0-rc.2
     restart: unless-stopped
     # Linux: access Telemt's loopback API without exposing it to the network.
     network_mode: host

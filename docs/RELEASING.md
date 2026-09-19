@@ -26,8 +26,8 @@
 артефакты. Они не должны попадать в Git.
 
 ```sh
-make release VERSION=1.0.0-rc.1
-RELEASE_DIR="$PWD/release" RELEASE_VERSION=1.0.0-rc.1 \
+make release VERSION=1.0.0-rc.2
+RELEASE_DIR="$PWD/release" RELEASE_VERSION=1.0.0-rc.2 \
   go test -count=1 -run '^TestReleaseContract$' ./internal/update/
 ```
 
