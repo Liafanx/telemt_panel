@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os/exec"
+	"time"
 )
 
 // CmdRunner executes name with args and returns its captured stdout,
@@ -20,6 +21,9 @@ type CmdRunner func(ctx context.Context, name string, args ...string) (stdout, s
 // regardless of whether the runner is real or faked in tests.
 func OSCmdRunner(ctx context.Context, name string, args ...string) (stdout, stderr []byte, err error) {
 	cmd := exec.CommandContext(ctx, name, args...)
+	// A forking init script may leave capture pipes open in its daemon.
+	// Bound their lifetime after the command exits or the context is cancelled.
+	cmd.WaitDelay = time.Second
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf

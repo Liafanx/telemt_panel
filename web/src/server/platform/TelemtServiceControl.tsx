@@ -58,13 +58,14 @@ export function TelemtServiceControl() {
     notes = { start: t.startNote, stop: t.stopNote, restart: t.restartNote };
   const blocked = mutation.isPending || query.isFetching || stale || !!data?.busy;
   const allowed = action && !!data?.caps[action];
+  const managerLabel = data?.manager === "custom" ? t.customManager : (data?.manager ?? "—");
   return (
     <section className="border-t border-border px-4 py-4" data-testid="telemt-service-control">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-[16px] font-semibold">{t.title}</h3>
           <p className="mt-1 text-meta text-text-muted">
-            {t.host} · {data?.manager ?? "—"} · <code>{data?.service || t.notConfigured}</code>
+            {t.host} · {managerLabel} · <code>{data?.service || t.notConfigured}</code>
           </p>
         </div>
         <StatePill state={status === "running" ? "ok" : "muted"}>
@@ -143,7 +144,7 @@ export function TelemtServiceControl() {
             : t.title
         }
         eyebrow={t.host}
-        subtitle={`${data?.manager ?? "—"} · ${data?.service || t.notConfigured}`}
+        subtitle={`${managerLabel} · ${data?.service || t.notConfigured}`}
       >
         {action && (
           <div className="flex flex-col gap-4">

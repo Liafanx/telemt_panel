@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -96,5 +97,33 @@ func TestTLSCandidateRejectsNonNumericAndUnsafeListen(t *testing.T) {
 		if candidate.Normalize("") == nil {
 			t.Errorf("invalid listener accepted: %q", listen)
 		}
+	}
+}
+
+func TestTLSFilePreservesCustomCommandArrays(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	raw := "listen='127.0.0.1:8080'\n" + minimal + customCommandsTOML
+	if err := os.WriteFile(path, []byte(raw), 0600); err != nil {
+		t.Fatal(err)
+	}
+	f, err := OpenTLSFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	snapshot, err := f.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := snapshot.Config.Host.Commands
+	if err := f.Save(snapshot.Revision, TLSCandidate{Listen: "127.0.0.1:8443", TLS: TLSConfig{Mode: "http"}}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(after.Host.Commands, want) {
+		t.Fatalf("custom commands changed: %#v, want %#v", after.Host.Commands, want)
 	}
 }

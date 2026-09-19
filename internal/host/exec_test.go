@@ -3,7 +3,9 @@ package host
 import (
 	"context"
 	"errors"
+	"os/exec"
 	"testing"
+	"time"
 )
 
 // OSCmdRunner is the one piece of this package that legitimately execs a
@@ -39,5 +41,16 @@ func TestOSCmdRunner_CapturesStdout(t *testing.T) {
 	}
 	if string(stdout) != "hello" {
 		t.Errorf("stdout = %q, want %q", stdout, "hello")
+	}
+}
+
+func TestOSCmdRunner_DoesNotWaitForInheritedDaemonPipes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	// An init script can exit while its background child still owns the capture
+	// pipes. The runner must not wait for the daemon's lifetime to collect EOF.
+	_, _, err := OSCmdRunner(ctx, "/bin/sh", "-c", "sleep 3 &")
+	if !errors.Is(err, exec.ErrWaitDelay) && !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected a bounded output-wait error, got %v", err)
 	}
 }

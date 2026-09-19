@@ -573,6 +573,12 @@ else
   fail "update transaction fixture failed: $(cat "$TMP/update-test.log")"
 fi
 
+if sh "$HERE/install-entware-test.sh" >"$TMP/entware-test.log" 2>&1; then
+  pass
+else
+  fail "Entware fixture failed: $(cat "$TMP/entware-test.log")"
+fi
+
 # Firewall behavior lives in a focused PATH-stubbed fixture and remains part of
 # the full installer test entrypoint.
 if sh "$HERE/install-firewall-test.sh" >"$TMP/firewall-test.log" 2>&1; then

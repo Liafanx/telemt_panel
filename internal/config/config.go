@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/amirotin/telemt_panel/internal/host"
 )
 
 // Config is the panel's own configuration (config.toml).
@@ -96,7 +98,7 @@ type SubpageConfig struct {
 // source and service/container names to use.
 type HostConfig struct {
 	// ServiceManager selects how the panel controls services: auto (probe
-	// at startup) | systemd | openrc | procd | sysvinit | docker | none.
+	// at startup) | systemd | openrc | procd | sysvinit | docker | custom | none.
 	ServiceManager string `toml:"service_manager"`
 	// LogSource selects where live logs are read from: auto (probe at
 	// startup) | journald | logread | syslog | docker | file.
@@ -113,6 +115,8 @@ type HostConfig struct {
 	// under the docker manager, which doesn't mean anything to `docker
 	// restart`/`docker logs`.
 	PanelContainer string `toml:"panel_container"`
+	// Commands contains fixed argv vectors used by the custom service manager.
+	Commands host.CustomCommands `toml:"commands"`
 }
 
 // UpdatesConfig points the panel's self-update and Telemt-update flows at
@@ -229,9 +233,24 @@ func decode(data []byte, path string) (*Config, error) {
 	switch cfg.Host.ServiceManager {
 	case "":
 		cfg.Host.ServiceManager = "auto"
-	case "auto", "systemd", "openrc", "procd", "sysvinit", "docker", "none":
+	case "auto", "systemd", "openrc", "procd", "sysvinit", "docker", "custom", "none":
 	default:
-		return nil, fmt.Errorf("host.service_manager: unknown value %q (auto | systemd | openrc | procd | sysvinit | docker | none)", cfg.Host.ServiceManager)
+		return nil, fmt.Errorf("host.service_manager: unknown value %q (auto | systemd | openrc | procd | sysvinit | docker | custom | none)", cfg.Host.ServiceManager)
+	}
+	commandsConfigured := hasCustomCommands(cfg.Host.Commands)
+	if commandsConfigured && cfg.Host.ServiceManager == "auto" {
+		cfg.Host.ServiceManager = host.KindCustom
+	}
+	if commandsConfigured && cfg.Host.ServiceManager != host.KindCustom {
+		return nil, fmt.Errorf("host.commands: cannot be used with host.service_manager %q", cfg.Host.ServiceManager)
+	}
+	if cfg.Host.ServiceManager == host.KindCustom {
+		if err := validateCustomCommands(cfg.Host.Commands); err != nil {
+			return nil, err
+		}
+		if cfg.Host.TelemtService == cfg.Host.PanelService {
+			return nil, fmt.Errorf("host.panel_service: must differ from host.telemt_service for custom commands")
+		}
 	}
 
 	switch cfg.Host.LogSource {
@@ -279,6 +298,60 @@ func decode(data []byte, path string) (*Config, error) {
 
 	cfg.Path = path
 	return cfg, nil
+}
+
+const (
+	maxCustomCommandElements = 64
+	maxCustomCommandArgBytes = 4096
+	maxCustomCommandBytes    = 16384
+)
+
+func hasCustomCommands(commands host.CustomCommands) bool {
+	return len(commands.Telemt.Start) != 0 || len(commands.Telemt.Stop) != 0 ||
+		len(commands.Telemt.Restart) != 0 || len(commands.Panel.Restart) != 0
+}
+
+func validateCustomCommands(commands host.CustomCommands) error {
+	for _, binding := range []struct {
+		field string
+		argv  []string
+	}{
+		{field: "host.commands.telemt.start", argv: commands.Telemt.Start},
+		{field: "host.commands.telemt.stop", argv: commands.Telemt.Stop},
+		{field: "host.commands.telemt.restart", argv: commands.Telemt.Restart},
+		{field: "host.commands.panel.restart", argv: commands.Panel.Restart},
+	} {
+		if err := validateCustomCommand(binding.argv); err != nil {
+			return fmt.Errorf("%s: %w", binding.field, err)
+		}
+	}
+	return nil
+}
+
+func validateCustomCommand(argv []string) error {
+	if len(argv) == 0 {
+		return fmt.Errorf("command is required")
+	}
+	if len(argv) > maxCustomCommandElements {
+		return fmt.Errorf("command has too many elements")
+	}
+	if !filepath.IsAbs(argv[0]) || filepath.Clean(argv[0]) != argv[0] {
+		return fmt.Errorf("executable must be an absolute clean path")
+	}
+	total := 0
+	for _, arg := range argv {
+		if len(arg) > maxCustomCommandArgBytes {
+			return fmt.Errorf("command element is too long")
+		}
+		if strings.ContainsAny(arg, "\x00\r\n") {
+			return fmt.Errorf("command elements must not contain NUL or line breaks")
+		}
+		total += len(arg)
+		if total > maxCustomCommandBytes {
+			return fmt.Errorf("command is too large")
+		}
+	}
+	return nil
 }
 
 // basePathAllowedRE is the character whitelist validateBasePath enforces:

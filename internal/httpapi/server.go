@@ -90,7 +90,7 @@ type Server struct {
 // New builds the handler tree.
 func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, version string) *Server {
 	probe := host.DefaultProbe()
-	svcMgr := host.NewServiceManager(cfg.Host.ServiceManager, probe, host.OSCmdRunner)
+	svcMgr := configuredServiceManager(cfg.Host, cfg.Host.ServiceManager, probe, host.OSCmdRunner)
 	logSrc := host.NewLogSource(cfg.Host.LogSource, cfg.Host.LogFile, svcMgr.Kind(), probe, host.OSCmdRunner, host.OSProcessStarter, host.DefaultLogPollInterval)
 
 	euid := os.Geteuid()
@@ -126,12 +126,12 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 	// host kind, so Telemt and panel restarts always use the same init-system
 	// implementation and differ only by their allow-listed service name.
 	sudoRun := host.NewSudoCmdRunner(host.OSCmdRunner)
-	sudoSvcMgr := host.NewServiceManager(svcMgr.Kind(), probe, sudoRun)
+	sudoSvcMgr := configuredServiceManager(cfg.Host, svcMgr.Kind(), probe, sudoRun)
 	var sudoRunner host.Runner = host.NewSudoRunner(allow, sudoSvcMgr, logSrc, sudoRun)
 	sudoAvailable := false
 	if cfg.Privileges.Mode == host.PrivilegesModeSudo || ((cfg.Privileges.Mode == "" || cfg.Privileges.Mode == host.PrivilegesModeAuto) && euid != 0) {
 		policyRun := host.NewSudoPolicyCmdRunner(host.OSCmdRunner)
-		policySvcMgr := host.NewServiceManager(svcMgr.Kind(), probe, policyRun)
+		policySvcMgr := configuredServiceManager(cfg.Host, svcMgr.Kind(), probe, policyRun)
 		policyRunner := host.NewSudoRunner(allow, policySvcMgr, logSrc, policyRun)
 		probeCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		probeOps := updatePrivilegeProbeOps(allow.StagingPrefix, cfg.Updates, telemtServiceName, panelServiceName)
@@ -156,7 +156,7 @@ func New(cfg *config.Config, tc *telemt.Client, st store.Store, hb *hub.Hub, ver
 	var startAllowed, stopAllowed bool
 	if privilegesMode == host.PrivilegesModeSudo && len(allow.ControlServices) != 0 {
 		policyRun := host.NewSudoPolicyCmdRunner(host.OSCmdRunner)
-		policyManager := host.NewServiceManager(svcMgr.Kind(), probe, policyRun)
+		policyManager := configuredServiceManager(cfg.Host, svcMgr.Kind(), probe, policyRun)
 		policyRunner := host.NewSudoRunner(allow, policyManager, logSrc, policyRun)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		startAllowed, stopAllowed = host.ProbeServiceControls(ctx, policyRunner, telemtServiceName)

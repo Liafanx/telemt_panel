@@ -89,7 +89,7 @@ mode = "http"
 [host]
 # Service manager for status, start/stop and restart operations, including updates.
 # "auto" (default) probes the host at startup.
-# service_manager = "auto" # auto | systemd | openrc | procd | sysvinit | docker | none
+# service_manager = "auto" # auto | systemd | openrc | procd | sysvinit | docker | custom | none
 # Where live logs are read from. "auto" (default) probes the host at
 # startup.
 # log_source = "auto" # auto | journald | logread | syslog | docker | file
@@ -100,6 +100,17 @@ mode = "http"
 # panel_service = "telemt-panel"
 # telemt_container = "telemt"
 # panel_container = "telemt-panel"
+
+# Optional custom service control (config-only; restart the panel to apply).
+# Defining all four commands selects custom mode when service_manager is auto.
+# Each array is an absolute executable path plus literal arguments, NOT shell text.
+# No status command is assumed. Keep scripts and their parent directories trusted.
+# [host.commands.telemt]
+# start = ["/opt/etc/init.d/S99telemt", "start"]
+# stop = ["/opt/etc/init.d/S99telemt", "stop"]
+# restart = ["/opt/etc/init.d/S99telemt", "restart"]
+# [host.commands.panel]
+# restart = ["/opt/etc/init.d/S99telemt-panel", "restart"]
 
 [privileges]
 # How the panel executes privileged host operations (installing/restoring

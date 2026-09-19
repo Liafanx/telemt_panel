@@ -69,6 +69,18 @@ func manualServiceCommand(kind, service, action string) string {
 	}
 }
 
+func serviceCommandHint(manager host.ServiceManager, service, action string) string {
+	if custom, ok := manager.(interface{ Command(string, string) []string }); ok {
+		argv := custom.Command(service, action)
+		quoted := make([]string, len(argv))
+		for i, arg := range argv {
+			quoted[i] = shellCommandArg(arg)
+		}
+		return strings.Join(quoted, " ")
+	}
+	return manualServiceCommand(manager.Kind(), service, action)
+}
+
 func (s *Server) handleTelemtService(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -89,7 +101,7 @@ func (s *Server) handleTelemtService(w http.ResponseWriter, r *http.Request) {
 	manual := map[string]string{}
 	for action, enabled := range map[string]bool{"start": caps.Start, "stop": caps.Stop, "restart": caps.Restart} {
 		if !enabled && (!conflict || action == "restart") {
-			if command := manualServiceCommand(s.svcMgr.Kind(), s.telemtServiceName, action); command != "" {
+			if command := serviceCommandHint(s.svcMgr, s.telemtServiceName, action); command != "" {
 				manual[action] = command
 			}
 		}
@@ -132,7 +144,7 @@ func (s *Server) handleServiceAction(w http.ResponseWriter, r *http.Request, act
 			code = "manual_restart_required"
 			hint := s.svcMgr.Caps().ManualRestartHint
 			if s.svcMgr.Caps().CanRestart {
-				hint = manualRestartCommand(s.svcMgr.Kind(), s.telemtServiceName)
+				hint = serviceCommandHint(s.svcMgr, s.telemtServiceName, "restart")
 			}
 			message += ": " + hint
 		}

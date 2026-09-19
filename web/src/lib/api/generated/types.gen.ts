@@ -682,7 +682,7 @@ export type ReloadStatus = {
 };
 
 export type HostInfo = {
-    service_manager: 'systemd' | 'openrc' | 'procd' | 'sysvinit' | 'docker' | 'none';
+    service_manager: 'systemd' | 'openrc' | 'procd' | 'sysvinit' | 'docker' | 'custom' | 'none';
     log_source: 'journald' | 'logread' | 'syslog' | 'docker' | 'file' | 'none';
     privileges_mode: 'sudo' | 'direct' | 'manual';
     /**

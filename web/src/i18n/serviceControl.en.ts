@@ -1,6 +1,7 @@
 export const serviceControlEn = {
   title: "Telemt service",
   host: "On the panel host",
+  customManager: "Custom commands",
   binding: "Service / container",
   notConfigured: "not configured",
   running: "Running",

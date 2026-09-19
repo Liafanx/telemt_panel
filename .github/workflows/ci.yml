@@ -162,7 +162,7 @@ jobs:
 
       - name: Lint installer
         run: |
-          shellcheck -s sh install.sh scripts/install-test.sh scripts/install-e2e.sh
+          shellcheck -s sh install.sh scripts/install-test.sh scripts/install-e2e.sh scripts/install-entware-test.sh
           dash -n install.sh
           bash -n install.sh
 

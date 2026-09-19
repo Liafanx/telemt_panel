@@ -7,7 +7,7 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT INT TERM
 REAL_INSTALL=$(command -v install)
 export REAL_INSTALL
-for scenario in success archived-settings fail rollback-fail copy-fail old-candidate fifo-config dry no-start; do
+for scenario in success custom entware-custom entware-auto archived-settings fail rollback-fail copy-fail old-candidate fifo-config dry no-start; do
   dir="$TMP/$scenario"
   mkdir -p "$dir/bin" "$dir/tools"
   printf 'original binary\n' >"$dir/bin/telemt-panel"
@@ -15,7 +15,12 @@ for scenario in success archived-settings fail rollback-fail copy-fail old-candi
   printf 'private-config-value\n' >"$dir/config.toml"
   if [ "$scenario" = fifo-config ]; then rm "$dir/config.toml"; mkfifo "$dir/config.toml"; fi
   printf 'ExecStart=%s --config %s\n' "$dir/bin/telemt-panel" "$dir/config.toml" >"$dir/service"
-  printf '{"panel_binary_path":"%s","panel_service":"testpanel","store_driver":"memory","listen":"127.0.0.1:8080","tls_mode":"http"}\n' "$dir/bin/telemt-panel" >"$dir/report.json"
+  printf '{"panel_binary_path":"%s","panel_service":"testpanel","telemt_service":"telemt","service_manager":"systemd","store_driver":"memory","listen":"127.0.0.1:8080","tls_mode":"http"}\n' "$dir/bin/telemt-panel" >"$dir/report.json"
+  if [ "$scenario" = custom ] || [ "$scenario" = entware-custom ]; then
+    printf '{"panel_binary_path":"%s","panel_service":"custom-panel","telemt_service":"custom-telemt","service_manager":"custom","store_driver":"memory","listen":"127.0.0.1:8080","tls_mode":"http"}\n' "$dir/bin/telemt-panel" >"$dir/report.json"
+  elif [ "$scenario" = entware-auto ]; then
+    printf '{"panel_binary_path":"%s","panel_service":"S99telemt-panel","telemt_service":"S99telemt","service_manager":"auto","store_driver":"memory","listen":"127.0.0.1:8080","tls_mode":"http"}\n' "$dir/bin/telemt-panel" >"$dir/report.json"
+  fi
   if [ "$scenario" = archived-settings ]; then
     printf '{"panel_binary_path":"%s","panel_service":"testpanel","store_driver":"memory","listen":"127.0.0.1:8080","tls_mode":"http","warnings":["user_defaults_not_applied","release_limits_not_applied"]}\n' "$dir/bin/telemt-panel" >"$dir/report.json"
   fi
@@ -34,12 +39,14 @@ case "$1 $2" in
       *--expect-fingerprint*) [ "$TEST_SCENARIO" != rollback-fail ] ;;
       *) [ "$TEST_SCENARIO" != fail ] && [ "$TEST_SCENARIO" != rollback-fail ] ;;
     esac ;;
+  "service restart") printf '%s\n' "$*" >>"$TEST_DIR/service-calls" ;;
   *) exit 1 ;;
 esac
 EOF
-  cat >"$dir/tools/systemctl" <<'EOF'
+cat >"$dir/tools/systemctl" <<'EOF'
 #!/bin/sh
 printf '%s\n' "$*" >>"$TEST_DIR/service-calls"
+[ "$TEST_SCENARIO" != custom ] || [ "$1" != is-active ]
 EOF
   cat >"$dir/tools/install" <<'EOF'
 #!/bin/sh
@@ -58,6 +65,7 @@ EOF
     L=en; COLOR=0; C_DIM=""; C_RESET=""; C_GREEN=""; C_YELLOW=""; C_RED=""
     # shellcheck disable=SC2034
     INIT=systemd; BUILD_VARIANT=full; ASSUME_YES=1; SUDO=""
+    case "$TEST_SCENARIO" in entware-*) INIT=entware ;; esac
     CONFIG_FILE="$TEST_DIR/config.toml"; BINARY_FILE="$TEST_DIR/candidate"
     PATH="$TEST_DIR/tools:$PATH"
     case "$TEST_SCENARIO" in dry) DRY_RUN=1 ;; no-start) NO_START=1 ;; esac
@@ -69,7 +77,7 @@ EOF
     do_update_existing
   ) >"$dir/output" 2>&1; then result=0; else result=$?; fi
   case "$scenario" in
-    fail|rollback-fail|copy-fail|old-candidate|fifo-config)
+    fail|rollback-fail|copy-fail|old-candidate|fifo-config|entware-auto)
       [ "$result" != 0 ] || { cat "$dir/output"; exit 1; }
       [ "$(cat "$dir/bin/telemt-panel")" = "original binary" ]
       [ "$(stat -c %a "$dir/bin/telemt-panel")" = 751 ]
@@ -77,6 +85,9 @@ EOF
         fail|copy-fail) grep -q 'Previous panel response restored' "$dir/output" ;;
         rollback-fail) grep -q 'Automatic recovery failed' "$dir/output" ;;
         old-candidate|fifo-config) [ ! -e "$dir/unintended-start" ] && [ ! -e "$dir/service-calls" ] ;;
+        entware-auto)
+          [ ! -e "$dir/service-calls" ]
+          grep -q 'service_manager = "custom"' "$dir/output" ;;
       esac ;;
     dry)
       [ "$result" = 0 ] || { cat "$dir/output"; exit 1; }
@@ -89,6 +100,10 @@ EOF
       [ "$(stat -c %a "$dir/bin/telemt-panel")" = 755 ]
       if [ "$scenario" = no-start ]; then [ ! -e "$dir/service-calls" ]; fi ;;
   esac
+  if [ "$scenario" = custom ] || [ "$scenario" = entware-custom ]; then
+    grep -q "^service restart --target panel --config .*existing.toml$" "$dir/service-calls"
+    if grep -q '^stop ' "$dir/service-calls"; then exit 1; fi
+  fi
   if [ "$scenario" = fifo-config ]; then
     [ -p "$dir/config.toml" ]
   else

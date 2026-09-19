@@ -7,6 +7,8 @@ describe("isCopyableHostCommand", () => {
     "rc-service telemt restart",
     "/etc/init.d/telemt restart",
     "docker restart telemt",
+    "/opt/etc/init.d/S99telemt restart",
+    "'/opt/tools/control proxy' --name 'route;literal' restart",
   ])("recognizes a host restart command: %s", (value) => {
     expect(isCopyableHostCommand(value)).toBe(true);
   });

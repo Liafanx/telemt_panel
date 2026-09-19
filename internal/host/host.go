@@ -2,7 +2,7 @@
 // on: controlling the telemt and telemt-panel services, and (a later task)
 // reading their logs. Every operation sits behind an interface with a
 // production implementation per init system (systemd, OpenRC, procd,
-// sysvinit, Docker) plus a "none" fallback, and a capability query so the
+// sysvinit, Docker), fixed custom commands, plus a "none" fallback, and a capability query so the
 // UI never assumes an operation exists — it asks Caps() and shows a
 // disabled control with a copyable manual command instead of a dead
 // button.
@@ -23,6 +23,7 @@ const (
 	KindProcd    = "procd"
 	KindSysvinit = "sysvinit"
 	KindDocker   = "docker"
+	KindCustom   = "custom"
 	KindNone     = "none"
 )
 
@@ -92,7 +93,8 @@ type ServiceCaps struct {
 // ServiceManager controls the lifecycle of a system service (telemt,
 // telemt-panel). One implementation per init system lives alongside this
 // package: systemd.go, openrc.go, procd.go, sysvinit.go, docker.go,
-// none.go. Detect and construct the right one via NewServiceManager.
+// custom.go, none.go. Detect native managers via NewServiceManager; construct
+// a validated custom manager via NewCustom.
 type ServiceManager interface {
 	// Kind identifies the implementation; one of the Kind* constants
 	// above.

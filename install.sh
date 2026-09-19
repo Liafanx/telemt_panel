@@ -5,7 +5,7 @@
 # GitHub Releases, writes its config, provisions a dedicated system user with a
 # narrow sudoers policy (or runs as root where that is the platform norm),
 # registers a service for the detected init system (systemd, OpenRC, procd,
-# sysvinit) and migrates a 0.x installation in place.
+# Entware, sysvinit) and migrates a 0.x installation in place.
 #
 #   sh install.sh                # interactive install
 #   sh install.sh --lang en help # every option and environment variable
@@ -24,7 +24,15 @@ CONFIG_FILE="$CONFIG_DIR/config.toml"
 SUDOERS_FILE="/etc/sudoers.d/telemt-panel"
 TELEMT_CONFIG="/etc/telemt/telemt.toml"
 LOG_FILE="/var/log/telemt-panel.log"
+PID_FILE="/run/telemt-panel.pid"
 HEALTH_WAIT_SECONDS=15
+
+SYSTEMD_RUN_DIR="/run/systemd/system"
+OPENRC_RUN_DIR="/run/openrc"
+OPENWRT_RELEASE="/etc/openwrt_release"
+SYSV_INIT_DIR="/etc/init.d"
+ENTWARE_RC_UNSLUNG="/opt/etc/init.d/rc.unslung"
+ENTWARE_OPKG="/opt/bin/opkg"
 
 # Resolved after init-system detection (routers keep a different layout).
 BIN_DIR="/usr/local/bin"
@@ -57,6 +65,9 @@ TELEMT_SVC_DETECTED=""
 TELEMT_URL_DETECTED=""
 TELEMT_AUTH_DETECTED=""
 TELEMT_API_ENABLED=""
+SERVICE_MANAGER=""
+PANEL_SERVICE_SCRIPT=""
+TELEMT_SERVICE_SCRIPT=""
 
 # ── Answer globals ───────────────────────────────────────────────────────────
 TELEMT_URL=""
@@ -322,14 +333,18 @@ Paths: binary %s, config %s, data %s
     en:unsafe_service) _f='Invalid service name: %s. Use letters, digits, _, ., @ or -, without a leading hyphen.' ;;
     ru:unsafe_sudoers_path) _f='Недопустимый путь sudoers: %s. Нужен абсолютный путь из букв латиницы, цифр, _, ., / и -.' ;;
     en:unsafe_sudoers_path) _f='Invalid sudoers path: %s. Use an absolute path containing only letters, digits, _, ., / or -.' ;;
+    ru:entware_service_exists) _f='Скрипт %s уже существует и не принадлежит установщику Telemt Panel. Он не изменён. Переместите его или выберите другое имя сервиса вручную.' ;;
+    en:entware_service_exists) _f='Service script %s already exists and is not managed by the Telemt Panel installer. It was not changed. Move it aside or choose another service name manually.' ;;
+    ru:entware_existing_commands) _f='Существующий конфиг Entware не включает безопасные custom-команды сервисов. Сначала сохраните копию: cp %s %s.entware-backup\nВ существующей секции [host] задайте:\nservice_manager = "custom"\n\n[host.commands.telemt]\nstart = ["/opt/etc/init.d/%s", "start"]\nstop = ["/opt/etc/init.d/%s", "stop"]\nrestart = ["/opt/etc/init.d/%s", "restart"]\n\n[host.commands.panel]\nrestart = ["/opt/etc/init.d/%s", "restart"]\nПосле проверки конфига повторите обновление; бинарник не изменён.' ;;
+    en:entware_existing_commands) _f='The existing Entware config does not enable safe custom service commands. Export a copy first: cp %s %s.entware-backup\nIn the existing [host] section set:\nservice_manager = "custom"\n\n[host.commands.telemt]\nstart = ["/opt/etc/init.d/%s", "start"]\nstop = ["/opt/etc/init.d/%s", "stop"]\nrestart = ["/opt/etc/init.d/%s", "restart"]\n\n[host.commands.panel]\nrestart = ["/opt/etc/init.d/%s", "restart"]\nValidate the config, then retry the update; the binary was not changed.' ;;
     ru:prereq_ok) _f='curl/wget, tar и права есть' ;;
     en:prereq_ok) _f='curl/wget, tar and privileges are available' ;;
 
     # ── detection ──
     ru:unsupported_arch) _f='Архитектура %s не поддерживается (нужна x86_64 или aarch64, как в официальных сборках Telemt).' ;;
     en:unsupported_arch) _f='Architecture %s is not supported (need x86_64 or aarch64, matching official Telemt builds).' ;;
-    ru:no_init) _f='Не удалось распознать систему инициализации (нет systemd, OpenRC, procd, sysvinit).\nПанель можно запустить вручную: %s --config %s' ;;
-    en:no_init) _f='Could not recognise the init system (no systemd, OpenRC, procd or sysvinit).\nThe panel can still be started by hand: %s --config %s' ;;
+    ru:no_init) _f='Не удалось распознать систему инициализации (нет systemd, OpenRC, procd, Entware или sysvinit).\nПанель можно запустить вручную: %s --config %s' ;;
+    en:no_init) _f='Could not recognise the init system (no systemd, OpenRC, procd, Entware or sysvinit).\nThe panel can still be started by hand: %s --config %s' ;;
     ru:d_arch) _f='Архитектура' ;;
     en:d_arch) _f='Architecture' ;;
     ru:d_variant) _f='Вариант панели' ;;
@@ -430,6 +445,8 @@ Paths: binary %s, config %s, data %s
     en:x_run_as) _f='1) A dedicated user %s (recommended). The panel has no root rights; replacing\n   binaries and restarting services goes through a short list of exact sudo\n   commands (%s).\n2) root. Simpler, but a compromised panel means full access to the server.' ;;
     ru:run_as_forced_procd) _f='На OpenWrt сервисы работают от root, отдельный пользователь не создаётся.' ;;
     en:run_as_forced_procd) _f='On OpenWrt services run as root; no dedicated user is created.' ;;
+    ru:run_as_forced_entware) _f='В Entware сервис панели работает от root; отдельный пользователь не создаётся.' ;;
+    en:run_as_forced_entware) _f='On Entware the panel service runs as root; no dedicated user is created.' ;;
     ru:run_as_forced_nosudo) _f='На хосте нет sudo или useradd — панель будет работать от root.\nЧтобы запускать её от отдельного пользователя, установите sudo и запустите скрипт снова.' ;;
     en:run_as_forced_nosudo) _f='No sudo or useradd on this host — the panel will run as root.\nInstall sudo and re-run the script to run it as a dedicated user.' ;;
     ru:q_storage) _f='Где хранить историю наблюдаемости?\n1) SQLite — файл на этом сервере (рекомендуется)\n2) Память — история пропадёт после перезапуска' ;;
@@ -1014,7 +1031,7 @@ detect_arch() {
 
 # Mirrors internal/update/variant.go: Alpine/OpenWrt markers, then ldd.
 detect_libc() {
-  if [ -f /etc/alpine-release ] || [ -f /etc/openwrt_release ]; then
+  if [ -f /etc/alpine-release ] || [ -f "$OPENWRT_RELEASE" ]; then
     LIBC="musl"
     return 0
   fi
@@ -1029,13 +1046,15 @@ detect_libc() {
 # Same order as internal/host/detect.go; procd (OpenWrt) has no rc-service,
 # so checking OpenRC before it is safe.
 detect_init() {
-  if [ -d /run/systemd/system ]; then
+  if [ -d "$SYSTEMD_RUN_DIR" ]; then
     INIT="systemd"
-  elif [ -d /run/openrc ] || has rc-service; then
+  elif [ -d "$OPENRC_RUN_DIR" ] || has rc-service; then
     INIT="openrc"
-  elif [ -f /etc/openwrt_release ]; then
+  elif [ -f "$OPENWRT_RELEASE" ]; then
     INIT="procd"
-  elif [ -d /etc/init.d ]; then
+  elif [ -x "$ENTWARE_RC_UNSLUNG" ] && [ -x "$ENTWARE_OPKG" ]; then
+    INIT="entware"
+  elif [ -d "$SYSV_INIT_DIR" ]; then
     INIT="sysvinit"
   else
     INIT="none"
@@ -1047,6 +1066,20 @@ apply_layout() {
   if [ "$INIT" = "procd" ]; then
     BIN_DIR="/usr/bin"
     DATA_DIR="/tmp/telemt-panel"
+  elif [ "$INIT" = "entware" ]; then
+    BIN_DIR="/opt/bin"
+    SERVICE_NAME="S99telemt-panel"
+    TELEMT_SVC="S99telemt"
+    CONFIG_DIR="/opt/etc/telemt-panel"
+    CONFIG_FILE="$CONFIG_DIR/config.toml"
+    SUDOERS_FILE="/opt/etc/sudoers.d/telemt-panel"
+    TELEMT_CONFIG="/opt/etc/telemt/telemt.toml"
+    DATA_DIR="/opt/var/lib/telemt-panel"
+    LOG_FILE="/opt/var/log/telemt-panel.log"
+    PID_FILE="/opt/var/run/$SERVICE_NAME.pid"
+    SERVICE_MANAGER="custom"
+    PANEL_SERVICE_SCRIPT="/opt/etc/init.d/$SERVICE_NAME"
+    TELEMT_SERVICE_SCRIPT="/opt/etc/init.d/$TELEMT_SVC"
   fi
   PANEL_BIN="$BIN_DIR/$BINARY_NAME"
   if [ -n "${TP_DATA_DIR:-}" ]; then
@@ -1054,6 +1087,7 @@ apply_layout() {
   fi
   case "$INIT" in
     systemd) SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service" ;;
+    entware) SERVICE_FILE="/opt/etc/init.d/$SERVICE_NAME" ;;
     *) SERVICE_FILE="/etc/init.d/$SERVICE_NAME" ;;
   esac
 }
@@ -1074,6 +1108,10 @@ detect_tools() {
   fi
 }
 
+telemt_binary_usable() {
+  [ -f "$1" ] && [ -x "$1" ]
+}
+
 # install_hint CMD — the package-manager one-liner for a missing tool.
 install_hint() {
   case "$PKG" in
@@ -1089,8 +1127,8 @@ install_hint() {
 
 detect_telemt() {
   TELEMT_BIN_DETECTED=""
-  for _c in /bin/telemt /usr/bin/telemt /usr/local/bin/telemt /opt/bin/telemt/telemt; do
-    if [ -x "$_c" ]; then
+  for _c in /bin/telemt /usr/bin/telemt /usr/local/bin/telemt /opt/bin/telemt /opt/bin/telemt/telemt; do
+    if telemt_binary_usable "$_c"; then
       TELEMT_BIN_DETECTED="$_c"
       break
     fi
@@ -1101,6 +1139,10 @@ detect_telemt() {
     systemd)
       if systemctl list-unit-files telemt.service 2>/dev/null | grep -q '^telemt\.service'; then
         TELEMT_SVC_DETECTED="telemt"
+      fi ;;
+    entware)
+      if [ -x /opt/etc/init.d/S99telemt ]; then
+        TELEMT_SVC_DETECTED="S99telemt"
       fi ;;
     *)
       if [ -x /etc/init.d/telemt ]; then
@@ -1212,6 +1254,7 @@ service_cmd() {
     systemd) printf '%s %s %s' "$(command -v systemctl)" "$2" "$1" ;;
     openrc) printf '%s %s %s' "$(command -v rc-service)" "$1" "$2" ;;
     procd|sysvinit) printf '/etc/init.d/%s %s' "$1" "$2" ;;
+    entware) printf '/opt/etc/init.d/%s %s' "$1" "$2" ;;
   esac
 }
 
@@ -1223,6 +1266,7 @@ restart_display() {
     systemd) printf 'systemctl restart %s' "$1" ;;
     openrc) printf 'rc-service %s restart' "$1" ;;
     procd|sysvinit) printf '/etc/init.d/%s restart' "$1" ;;
+    entware) printf '/opt/etc/init.d/%s restart' "$1" ;;
   esac
 }
 
@@ -1252,6 +1296,7 @@ gen_config() {
     _c_auth="# Хеш пароля: telemt-panel hash-password"
     _c_sub="# Страница подписки /sub/<token>. secret — ключ HMAC для токенов."
     _c_host="# Имена сервисов для рестарта и чтения журнала (auto-детект init-системы)."
+    _c_entware_log="# Укажите здесь реальный файл журнала Telemt; журнал самой панели хранится в $LOG_FILE."
     _c_upd="# Пути бинарей, которые заменяет обновление из панели."
     _c_priv="# sudo — узкая политика в $SUDOERS_FILE; direct — панель работает от root."
   else
@@ -1262,6 +1307,7 @@ gen_config() {
     _c_auth="# Password hash: telemt-panel hash-password"
     _c_sub="# Subscription page /sub/<token>. secret is the HMAC key for tokens."
     _c_host="# Service names for restarts and log reading (init system is auto-detected)."
+    _c_entware_log="# Set the actual Telemt log file here; panel stdout remains in $LOG_FILE."
     _c_upd="# Binary paths replaced by updates started from the panel."
     _c_priv="# sudo — narrow policy in $SUDOERS_FILE; direct — the panel runs as root."
   fi
@@ -1302,6 +1348,24 @@ secret = "$(toml_escape "$SUBPAGE_SECRET")"
 $_c_host
 telemt_service = "$(toml_escape "$TELEMT_SVC")"
 panel_service = "$SERVICE_NAME"
+EOF
+  if [ "$INIT" = "entware" ]; then
+    cat <<EOF
+service_manager = "custom"
+log_source = "file"
+$_c_entware_log
+log_file = ""
+
+[host.commands.telemt]
+start = ["/opt/etc/init.d/$TELEMT_SVC", "start"]
+stop = ["/opt/etc/init.d/$TELEMT_SVC", "stop"]
+restart = ["/opt/etc/init.d/$TELEMT_SVC", "restart"]
+
+[host.commands.panel]
+restart = ["/opt/etc/init.d/$SERVICE_NAME", "restart"]
+EOF
+  fi
+  cat <<EOF
 
 [updates]
 $_c_upd
@@ -1337,6 +1401,17 @@ validate_service_names() {
   for _service in "$SERVICE_NAME" "$TELEMT_SVC"; do
     service_name_ok "$_service" || die "$(t unsafe_service "$_service")"
   done
+}
+
+resolve_report_service_scripts() {
+  if [ -n "$PANEL_SERVICE_SCRIPT" ]; then
+    service_name_ok "$PANEL_SERVICE_SCRIPT" || return 1
+    PANEL_SERVICE_SCRIPT="/opt/etc/init.d/$PANEL_SERVICE_SCRIPT"
+  fi
+  if [ -n "$TELEMT_SERVICE_SCRIPT" ]; then
+    service_name_ok "$TELEMT_SERVICE_SCRIPT" || return 1
+    TELEMT_SERVICE_SCRIPT="/opt/etc/init.d/$TELEMT_SERVICE_SCRIPT"
+  fi
 }
 
 # gen_sudoers — exactly the commands the panel probes with `sudo -n -l` at
@@ -1452,6 +1527,142 @@ start_service() {
 EOF
 }
 
+gen_service_entware() {
+  cat <<EOF
+#!/bin/sh
+# telemt-panel managed Entware service
+
+PATH=/opt/bin:/opt/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+export PATH
+
+DAEMON="$PANEL_BIN"
+CONFIG="$CONFIG_FILE"
+PIDFILE="$PID_FILE"
+LOGFILE="$LOG_FILE"
+
+read_pid() {
+	PID=""
+	[ -r "\$PIDFILE" ] || return 1
+	IFS= read -r PID <"\$PIDFILE" || return 1
+	case "\$PID" in ''|*[!0-9]*) return 1 ;; esac
+}
+
+pid_matches() {
+	read_pid || return 1
+	kill -0 "\$PID" 2>/dev/null || return 1
+	DAEMON_CANON=\$(readlink -f "\$DAEMON" 2>/dev/null || true)
+	[ -n "\$DAEMON_CANON" ] || return 1
+	EXE=\$(readlink "/proc/\$PID/exe" 2>/dev/null || true)
+	case "\$EXE" in *' (deleted)') EXE=\${EXE% (deleted)} ;; esac
+	[ "\$EXE" = "\$DAEMON_CANON" ] || return 1
+	[ -r "/proc/\$PID/cmdline" ] || return 1
+	EXPECTED="\$PIDFILE.expected.\$\$"
+	if ! printf '%s\\000%s\\000%s\\000' "\$DAEMON" --config "\$CONFIG" >"\$EXPECTED"; then
+		rm -f "\$EXPECTED"
+		return 1
+	fi
+	if cmp "/proc/\$PID/cmdline" "\$EXPECTED" >/dev/null 2>&1; then MATCH=0; else MATCH=1; fi
+	rm -f "\$EXPECTED"
+	return "\$MATCH"
+}
+
+stop_spawned() {
+	kill "\$PID" 2>/dev/null || true
+	WAIT=0
+	while kill -0 "\$PID" 2>/dev/null && [ "\$WAIT" -lt 5 ]; do
+		sleep 1
+		WAIT=\$((WAIT + 1))
+	done
+	if kill -0 "\$PID" 2>/dev/null; then kill -KILL "\$PID" 2>/dev/null || true; fi
+	wait "\$PID" 2>/dev/null || true
+	rm -f "\$PIDTMP"
+}
+
+start() {
+	if read_pid && kill -0 "\$PID" 2>/dev/null; then
+		if pid_matches; then
+			echo "$SERVICE_NAME is already running"
+			return 0
+		fi
+		echo "Refusing to replace live unrelated PID \$PID" >&2
+		return 1
+	fi
+	rm -f "\$PIDFILE"
+	mkdir -p "\$(dirname "\$PIDFILE")" "\$(dirname "\$LOGFILE")"
+	PIDTMP="\$PIDFILE.tmp.\$\$"
+	umask 027
+	if ! : >"\$PIDTMP"; then
+		echo "Cannot create PID file \$PIDFILE" >&2
+		return 1
+	fi
+	nohup "\$DAEMON" --config "\$CONFIG" </dev/null >>"\$LOGFILE" 2>&1 &
+	PID=\$!
+	if ! printf '%s\\n' "\$PID" >"\$PIDTMP" || ! mv -f "\$PIDTMP" "\$PIDFILE"; then
+		stop_spawned
+		return 1
+	fi
+	sleep 1
+	if ! pid_matches; then
+		echo "$SERVICE_NAME failed to start" >&2
+		PIDTMP="\$PIDFILE"
+		stop_spawned
+		rm -f "\$PIDFILE"
+		return 1
+	fi
+	echo "Started $SERVICE_NAME"
+}
+
+stop() {
+	if ! read_pid; then
+		rm -f "\$PIDFILE"
+		echo "$SERVICE_NAME is not running"
+		return 0
+	fi
+	if ! kill -0 "\$PID" 2>/dev/null; then
+		rm -f "\$PIDFILE"
+		echo "$SERVICE_NAME is not running"
+		return 0
+	fi
+	if ! pid_matches; then
+		echo "Refusing to signal unrelated PID \$PID" >&2
+		return 1
+	fi
+	kill "\$PID" || return 1
+	WAIT=0
+	while kill -0 "\$PID" 2>/dev/null && [ "\$WAIT" -lt 30 ]; do
+		sleep 1
+		WAIT=\$((WAIT + 1))
+	done
+	if kill -0 "\$PID" 2>/dev/null; then
+		echo "$SERVICE_NAME did not stop" >&2
+		return 1
+	fi
+	rm -f "\$PIDFILE"
+	echo "Stopped $SERVICE_NAME"
+}
+
+status() {
+	if pid_matches; then
+		echo "$SERVICE_NAME is running (PID \$PID)"
+		return 0
+	fi
+	echo "$SERVICE_NAME is stopped"
+	return 3
+}
+
+case "\${1:-}" in
+	start) start ;;
+	stop) stop ;;
+	restart)
+		# The old daemon may be the caller; keep output off its closing pipes.
+		mkdir -p "\$(dirname "\$LOGFILE")" || exit 1
+		{ stop && start; } >>"\$LOGFILE" 2>&1 ;;
+	status) status ;;
+	*) echo "Usage: \$0 {start|stop|restart|status}"; exit 1 ;;
+esac
+EOF
+}
+
 gen_service_sysvinit() {
   _chuid=""
   if [ "$RUN_AS" = "user" ]; then
@@ -1508,12 +1719,13 @@ gen_service() {
     systemd) gen_service_systemd ;;
     openrc) gen_service_openrc ;;
     procd) gen_service_procd ;;
+    entware) gen_service_entware ;;
     sysvinit) gen_service_sysvinit ;;
   esac
 }
 
 # Per-init command lines shown to the user.
-cmd_status()  { case "$INIT" in systemd) printf 'systemctl status %s' "$SERVICE_NAME" ;; openrc) printf 'rc-service %s status' "$SERVICE_NAME" ;; *) printf '/etc/init.d/%s status' "$SERVICE_NAME" ;; esac; }
+cmd_status()  { case "$INIT" in systemd) printf 'systemctl status %s' "$SERVICE_NAME" ;; openrc) printf 'rc-service %s status' "$SERVICE_NAME" ;; entware) printf '/opt/etc/init.d/%s status' "$SERVICE_NAME" ;; *) printf '/etc/init.d/%s status' "$SERVICE_NAME" ;; esac; }
 cmd_restart() { restart_display "$SERVICE_NAME"; }
 cmd_logs()    { case "$INIT" in systemd) printf 'journalctl -u %s -f' "$SERVICE_NAME" ;; procd) printf 'logread -f -e %s' "$SERVICE_NAME" ;; *) printf 'tail -f %s' "$LOG_FILE" ;; esac; }
 
@@ -1789,6 +2001,11 @@ ask_run_as() {
   if [ "$INIT" = "procd" ]; then
     RUN_AS="root"
     explain run_as_forced_procd
+    return 0
+  fi
+  if [ "$INIT" = "entware" ]; then
+    RUN_AS="root"
+    explain run_as_forced_entware
     return 0
   fi
   if [ "$HAS_SUDO" != 1 ] || [ "$HAS_USERADD" != 1 ]; then
@@ -2207,10 +2424,13 @@ setup_dirs() {
   fi
   _grp=$(owner_group "$_owner")
   run mkdir -p "$BIN_DIR" "$CONFIG_DIR" "$DATA_DIR/staging"
+  if [ "$INIT" = "entware" ]; then
+    run mkdir -p "$(dirname "$PID_FILE")" "$(dirname "$LOG_FILE")"
+  fi
   run chown "$_owner:$_grp" "$CONFIG_DIR" "$DATA_DIR" "$DATA_DIR/staging"
   run chmod 0750 "$CONFIG_DIR" "$DATA_DIR" "$DATA_DIR/staging"
   case "$INIT" in
-    openrc|sysvinit)
+    openrc|sysvinit|entware)
       run touch "$LOG_FILE"
       run chown "$_owner:$_grp" "$LOG_FILE" ;;
   esac
@@ -2353,6 +2573,11 @@ install_service() {
     procd)
       gen_service | write_root_file "$SERVICE_FILE" 0755
       run "$SERVICE_FILE" enable ;;
+    entware)
+      if [ -e "$SERVICE_FILE" ] || [ -L "$SERVICE_FILE" ]; then
+        die "$(t entware_service_exists "$SERVICE_FILE")"
+      fi
+      gen_service | write_root_file "$SERVICE_FILE" 0755 ;;
     sysvinit)
       gen_service | write_root_file "$SERVICE_FILE" 0755
       if has update-rc.d; then
@@ -2364,6 +2589,16 @@ install_service() {
       fi ;;
   esac
   ok "$(t a_service "$SERVICE_NAME" "$SERVICE_FILE")"
+}
+
+entware_service_managed() {
+  [ -f "$1" ] && [ ! -L "$1" ] && grep -qFx '# telemt-panel managed Entware service' "$1"
+}
+
+validate_fresh_service_target() {
+  if [ "$INIT" = entware ] && { [ -e "$SERVICE_FILE" ] || [ -L "$SERVICE_FILE" ]; }; then
+    die "$(t entware_service_exists "$SERVICE_FILE")"
+  fi
 }
 
 start_service() {
@@ -2489,10 +2724,59 @@ validate_existing_store_variant() {
 apply_layout_from_answers() {
   validate_service_names
   BIN_DIR=$(dirname "$PANEL_BIN")
+  if [ "$SERVICE_MANAGER" = custom ]; then
+    SERVICE_FILE="$PANEL_SERVICE_SCRIPT"
+  else
+    case "$INIT" in
+      systemd) SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service" ;;
+      entware) SERVICE_FILE="/opt/etc/init.d/$SERVICE_NAME" ;;
+      *) SERVICE_FILE="/etc/init.d/$SERVICE_NAME" ;;
+    esac
+  fi
+  if [ "$INIT" = entware ]; then PID_FILE="/opt/var/run/$SERVICE_NAME.pid"; fi
+}
+
+validate_retained_service() {
+  if [ "$INIT" = entware ] && [ "$SERVICE_MANAGER" != custom ]; then
+    die "$(t entware_existing_commands "$CONFIG_FILE" "$CONFIG_FILE" "$TELEMT_SVC" "$TELEMT_SVC" "$TELEMT_SVC" "$SERVICE_NAME")"
+  fi
+  if [ "$SERVICE_MANAGER" = custom ]; then
+    if [ -n "$PANEL_SERVICE_SCRIPT" ] && ! entware_service_managed "$PANEL_SERVICE_SCRIPT"; then
+      PANEL_SERVICE_SCRIPT=""
+      SERVICE_FILE=""
+    fi
+    return 0
+  fi
+  if [ -z "$SERVICE_FILE" ] || [ ! -f "$SERVICE_FILE" ]; then die "$(t update_preflight_failed)"; fi
+  if ! $SUDO grep -qF "$PANEL_BIN" "$SERVICE_FILE" || ! $SUDO grep -qF "$CONFIG_FILE" "$SERVICE_FILE"; then
+    die "$(t update_preflight_failed)"
+  fi
+}
+
+stop_retained_panel() {
+  if [ "$SERVICE_MANAGER" = custom ]; then
+    if [ -n "$PANEL_SERVICE_SCRIPT" ]; then run "$PANEL_SERVICE_SCRIPT" stop; fi
+    return 0
+  fi
   case "$INIT" in
-    systemd) SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service" ;;
-    *) SERVICE_FILE="/etc/init.d/$SERVICE_NAME" ;;
+    systemd) run systemctl stop "$SERVICE_NAME" ;;
+    openrc) run rc-service "$SERVICE_NAME" stop ;;
+    *) run "$SERVICE_FILE" stop ;;
   esac
+}
+
+restart_retained_panel() {
+  if [ "$SERVICE_MANAGER" = custom ]; then
+    if [ -n "$PANEL_SERVICE_SCRIPT" ]; then
+      run "$PANEL_SERVICE_SCRIPT" restart
+    else
+      run "$STAGED_BIN" service restart --target panel --config "$UPDATE_SOURCE"
+    fi
+    return $?
+  fi
+  _restart=$(cmd_restart)
+  # shellcheck disable=SC2086
+  run $_restart
 }
 
 # Existing installations retain config/unit/sudoers; only the binary changes.
@@ -2526,14 +2810,19 @@ do_update_existing() {
   staged_inspect config inspect --config "$UPDATE_SOURCE" >"$TEMP_DIR/inspect.json" || die "$(t update_preflight_failed)"
   PANEL_BIN=$(json_field "$TEMP_DIR/inspect.json" panel_binary_path)
   SERVICE_NAME=$(json_field "$TEMP_DIR/inspect.json" panel_service)
+  TELEMT_SVC=$(json_field "$TEMP_DIR/inspect.json" telemt_service)
+  SERVICE_MANAGER=$(json_field "$TEMP_DIR/inspect.json" service_manager)
+  PANEL_SERVICE_SCRIPT=$(json_field "$TEMP_DIR/inspect.json" panel_service_script)
+  TELEMT_SERVICE_SCRIPT=$(json_field "$TEMP_DIR/inspect.json" telemt_service_script)
+  resolve_report_service_scripts || die "$(t update_preflight_failed)"
   STORE_DRIVER=$(json_field "$TEMP_DIR/inspect.json" store_driver)
   LISTEN=$(json_field "$TEMP_DIR/inspect.json" listen)
   TLS_MODE=$(json_field "$TEMP_DIR/inspect.json" tls_mode)
   sudoers_path_ok "$PANEL_BIN" || die "$(t update_preflight_failed)"
   validate_existing_store_variant
   apply_layout_from_answers
-  if [ ! -f "$PANEL_BIN" ] || [ -L "$PANEL_BIN" ] || [ ! -f "$SERVICE_FILE" ]; then die "$(t update_preflight_failed)"; fi
-  if ! $SUDO grep -qF "$PANEL_BIN" "$SERVICE_FILE" || ! $SUDO grep -qF "$CONFIG_FILE" "$SERVICE_FILE"; then die "$(t update_preflight_failed)"; fi
+  if [ ! -f "$PANEL_BIN" ] || [ -L "$PANEL_BIN" ]; then die "$(t update_preflight_failed)"; fi
+  validate_retained_service
   [ "$(readlink -f "$PANEL_BIN")" = "$PANEL_BIN" ] || die "$(t update_preflight_failed)"
   if [ "$INSTALLED_TAG" != local ]; then
     UPDATE_CANDIDATE_VERSION=$(printf '%s\n' "$UPDATE_VERSION" | awk '{print $2}')
@@ -2544,7 +2833,7 @@ do_update_existing() {
   blank
   say "$(t update_preserve)"
   kv "$(t s_version)" "$UPDATE_VERSION"
-  kv "$(t s_service)" "$SERVICE_FILE"
+  kv "$(t s_service)" "${SERVICE_FILE:-custom commands}"
   if grep -q '"requires_migration": true' "$TEMP_DIR/inspect.json"; then
     warn "$(t update_legacy)"
   fi
@@ -2568,11 +2857,7 @@ do_update_existing() {
   say "$(t update_backup "$UPDATE_BACKUP")"
   UPDATE_PENDING=1
   if [ "$NO_START" != 1 ]; then
-    case "$INIT" in
-      systemd) run systemctl stop "$SERVICE_NAME" || die "$(t update_apply_failed)" ;;
-      openrc) run rc-service "$SERVICE_NAME" stop || die "$(t update_apply_failed)" ;;
-      *) run "$SERVICE_FILE" stop || die "$(t update_apply_failed)" ;;
-    esac
+    stop_retained_panel || die "$(t update_apply_failed)"
   fi
   install_binary || die "$(t update_apply_failed)"
   if [ "$NO_START" = 1 ]; then
@@ -2581,11 +2866,11 @@ do_update_existing() {
     return 0
   fi
   # Retained service definition: do not enable, regenerate or change its user.
-  _restart=$(cmd_restart)
-  # shellcheck disable=SC2086
-  run $_restart || die "$(t update_apply_failed)"
+  restart_retained_panel || die "$(t update_apply_failed)"
   $SUDO "$STAGED_BIN" tls check --config "$UPDATE_SOURCE" --timeout 120s || die "$(t update_apply_failed)"
-  if [ "$INIT" = systemd ]; then run_try systemctl is-active --quiet "$SERVICE_NAME" || die "$(t update_apply_failed)"; fi
+  if [ "$SERVICE_MANAGER" != custom ] && [ "$INIT" = systemd ]; then
+    run_try systemctl is-active --quiet "$SERVICE_NAME" || die "$(t update_apply_failed)"
+  fi
   UPDATE_PENDING=0
   ok "$(t update_verified)"
 }
@@ -2604,12 +2889,14 @@ restore_update() {
     UPDATE_RESTORE=""
   fi
   if [ "$NO_START" = 1 ]; then return 0; fi
-  if [ "$INIT" = systemd ]; then $SUDO systemctl reset-failed "$SERVICE_NAME" || return 1; fi
-  _restart=$(cmd_restart)
-  # shellcheck disable=SC2086
-  $SUDO $_restart || return 1
+  if [ "$SERVICE_MANAGER" != custom ] && [ "$INIT" = systemd ]; then
+    $SUDO systemctl reset-failed "$SERVICE_NAME" || return 1
+  fi
+  restart_retained_panel || return 1
   $SUDO "$STAGED_BIN" tls check --config "$UPDATE_SOURCE" --expect-fingerprint "$UPDATE_FINGERPRINT" --timeout 45s || return 1
-  if [ "$INIT" = systemd ]; then $SUDO systemctl is-active --quiet "$SERVICE_NAME" || return 1; fi
+  if [ "$SERVICE_MANAGER" != custom ] && [ "$INIT" = systemd ]; then
+    $SUDO systemctl is-active --quiet "$SERVICE_NAME" || return 1
+  fi
   warn "$(t update_restored "$UPDATE_BACKUP")"
 }
 
@@ -2653,6 +2940,7 @@ do_install() {
   step 3 step_questions
   collect_answers
   apply_layout_from_answers
+  validate_fresh_service_target
 
   step 4 step_summary
   print_summary
@@ -2702,10 +2990,15 @@ prepare_removal() {
   TELEMT_BIN=$(json_field "$TEMP_DIR/removal.json" telemt_binary_path)
   SERVICE_NAME=$(json_field "$TEMP_DIR/removal.json" panel_service)
   TELEMT_SVC=$(json_field "$TEMP_DIR/removal.json" telemt_service)
+  SERVICE_MANAGER=$(json_field "$TEMP_DIR/removal.json" service_manager)
+  PANEL_SERVICE_SCRIPT=$(json_field "$TEMP_DIR/removal.json" panel_service_script)
+  TELEMT_SERVICE_SCRIPT=$(json_field "$TEMP_DIR/removal.json" telemt_service_script)
+  resolve_report_service_scripts || die "$(t remove_unsafe)"
   DATA_DIR=$(json_field "$TEMP_DIR/removal.json" data_dir)
   sudoers_path_ok "$PANEL_BIN" || die "$(t remove_unsafe)"
   sudoers_path_ok "$TELEMT_BIN" || die "$(t remove_unsafe)"
   apply_layout_from_answers
+  if [ "$SERVICE_MANAGER" = custom ] && [ -z "$PANEL_SERVICE_SCRIPT" ]; then die "$(t remove_unsafe)"; fi
   [ "$SERVICE_NAME" != "$TELEMT_SVC" ] || die "$(t remove_unsafe)"
   [ "$($SUDO readlink -f "$PANEL_BIN")" != "$($SUDO readlink -f "$TELEMT_BIN")" ] || die "$(t remove_unsafe)"
   for REMOVE_PROTECTED_FILE in "$CONFIG_FILE" "$TELEMT_CONFIG" "$SERVICE_FILE" "$SUDOERS_FILE"; do
@@ -2716,6 +3009,9 @@ prepare_removal() {
     if [ -e "$REMOVE_FILE" ] && [ ! -f "$REMOVE_FILE" ]; then die "$(t remove_unsafe)"; fi
   done
   if [ -f "$SERVICE_FILE" ]; then
+    if [ "$SERVICE_MANAGER" = custom ] || [ "$INIT" = entware ]; then
+      entware_service_managed "$SERVICE_FILE" || die "$(t remove_unsafe)"
+    fi
     if ! $SUDO grep -qF "$PANEL_BIN" "$SERVICE_FILE" || ! $SUDO grep -qF "$CONFIG_FILE" "$SERVICE_FILE"; then die "$(t remove_unsafe)"; fi
   elif [ -f "$PANEL_BIN" ]; then
     # Without a matching service definition, do not unlink a possibly running daemon.
@@ -2747,6 +3043,10 @@ validate_removal_data() {
 }
 
 stop_and_disable_service() {
+  if [ "$SERVICE_MANAGER" = custom ]; then
+    run "$SERVICE_FILE" stop || return 1
+    return 0
+  fi
   case "$INIT" in
     systemd)
       run systemctl stop "$SERVICE_NAME" || return 1
@@ -2757,6 +3057,8 @@ stop_and_disable_service() {
     procd)
       run "$SERVICE_FILE" stop || return 1
       run "$SERVICE_FILE" disable || return 1 ;;
+    entware)
+      run "$SERVICE_FILE" stop || return 1 ;;
     sysvinit)
       run "$SERVICE_FILE" stop || return 1
       if has update-rc.d; then run update-rc.d -f "$SERVICE_NAME" remove || return 1

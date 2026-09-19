@@ -1,6 +1,7 @@
 export const serviceControlRu = {
   title: "Служба Telemt",
   host: "На узле панели",
+  customManager: "Пользовательские команды",
   binding: "Служба / контейнер",
   notConfigured: "не настроено",
   running: "Работает",

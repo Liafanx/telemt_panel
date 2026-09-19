@@ -186,6 +186,7 @@ export function PlatformPage() {
     procd: "procd",
     sysvinit: "SysV init",
     docker: "Docker",
+    custom: s.serviceControl.customManager,
     none: copy.notDetected,
   };
   const logLabels: Record<HostInfo["log_source"], string> = {

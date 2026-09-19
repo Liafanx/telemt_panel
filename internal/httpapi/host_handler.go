@@ -66,10 +66,10 @@ func (s *Server) handleHost(w http.ResponseWriter, r *http.Request) {
 	panelName, _ := resolveLogicalService("panel", s.svcMgr.Kind(), s.cfg.Host)
 	if serviceBindingsDiffer(s.svcMgr.Kind(), s.telemtServiceName, panelName) {
 		if !controlCaps.Start {
-			manual["start_telemt"] = manualServiceCommand(s.svcMgr.Kind(), s.telemtServiceName, "start")
+			manual["start_telemt"] = serviceCommandHint(s.svcMgr, s.telemtServiceName, "start")
 		}
 		if !controlCaps.Stop {
-			manual["stop_telemt"] = manualServiceCommand(s.svcMgr.Kind(), s.telemtServiceName, "stop")
+			manual["stop_telemt"] = serviceCommandHint(s.svcMgr, s.telemtServiceName, "stop")
 		}
 	}
 	if !restartAvailable {
@@ -78,8 +78,8 @@ func (s *Server) handleHost(w http.ResponseWriter, r *http.Request) {
 		if restartCaps.CanRestart {
 			telemtName, _ := resolveLogicalService("telemt", s.svcMgr.Kind(), s.cfg.Host)
 			panelName, _ := resolveLogicalService("panel", s.svcMgr.Kind(), s.cfg.Host)
-			telemtHint = manualRestartCommand(s.svcMgr.Kind(), telemtName)
-			panelHint = manualRestartCommand(s.svcMgr.Kind(), panelName)
+			telemtHint = serviceCommandHint(s.svcMgr, telemtName, "restart")
+			panelHint = serviceCommandHint(s.svcMgr, panelName, "restart")
 		}
 		manual["restart_telemt"] = telemtHint
 		manual["restart_panel"] = panelHint

@@ -1,5 +1,74 @@
 import { test, expect } from "./fixtures";
 
+test("custom service commands retain unknown status and manual instructions", async ({
+  page,
+  login,
+}) => {
+  await login();
+  const original = await (await page.request.get("/api/host")).json();
+  const commands = {
+    start: "'/opt/tools/control proxy' start",
+    stop: "'/opt/tools/control proxy' stop",
+    restart: "'/opt/tools/control proxy' restart",
+  };
+  await page.route("**/api/host", (route) =>
+    route.fulfill({
+      json: {
+        ...original,
+        service_manager: "custom",
+        privileges_mode: "manual",
+        caps: {
+          ...original.caps,
+          start_telemt: false,
+          stop_telemt: false,
+          restart_telemt: false,
+          restart_panel: false,
+          self_update: false,
+        },
+        manual_commands: {
+          restart_telemt: commands.restart,
+          restart_panel: "/opt/etc/init.d/S99telemt-panel restart",
+        },
+      },
+    }),
+  );
+  await page.route("**/api/telemt/service", (route) =>
+    route.fulfill({
+      json: {
+        service: "telemt",
+        manager: "custom",
+        status: "unknown",
+        status_supported: false,
+        binding_conflict: false,
+        busy: false,
+        caps: { start: false, stop: false, restart: false },
+        manual_commands: commands,
+      },
+    }),
+  );
+  const writes: string[] = [];
+  await page.route(/\/api\/telemt\/(start|stop|restart)$/, (route) => {
+    writes.push(route.request().method());
+    return route.abort();
+  });
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/server/platform");
+    const card = page.getByTestId("telemt-service-control");
+    await expect(card).toContainText("Пользовательские команды");
+    await expect(card).toContainText("Статус неизвестен");
+    for (const label of ["Запустить", "Остановить", "Перезапустить"]) {
+      await card.getByRole("button", { name: label, exact: true }).click();
+      await expect(page.getByRole("dialog")).toContainText("'/opt/tools/control proxy'");
+      await page.keyboard.press("Escape");
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+    ).toBeLessThanOrEqual(1);
+  }
+  expect(writes).toEqual([]);
+});
+
 for (const width of [320, 390, 1280]) {
   test(`Telemt service control uses host state, exact actions and explicit confirmation (${width}px)`, async ({
     page,

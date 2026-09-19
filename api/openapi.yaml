@@ -2374,7 +2374,7 @@ components:
       type: object
       required: [service_manager, log_source, privileges_mode, os, arch, panel_variant, storage_drivers, active_store, history_temporary, caps]
       properties:
-        service_manager: { type: string, enum: [systemd, openrc, procd, sysvinit, docker, none] }
+        service_manager: { type: string, enum: [systemd, openrc, procd, sysvinit, docker, custom, none] }
         log_source: { type: string, enum: [journald, logread, syslog, docker, file, none] }
         privileges_mode: { type: string, enum: [sudo, direct, manual] }
         os: { type: string, description: Go runtime operating system identifier, example: linux }

@@ -1,7 +1,8 @@
 const HOST_COMMAND_PREFIXES = [
   "systemctl ",
   "rc-service ",
-  "/etc/init.d/",
+  "/",
+  "'/",
   "docker restart ",
 ] as const;
 

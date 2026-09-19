@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -54,7 +55,7 @@ func TestLoadMinimal(t *testing.T) {
 		TelemtContainer: "telemt",
 		PanelContainer:  "telemt-panel",
 	}
-	if cfg.Host != wantHost {
+	if !reflect.DeepEqual(cfg.Host, wantHost) {
 		t.Errorf("default host = %+v, want %+v", cfg.Host, wantHost)
 	}
 	wantUpdates := UpdatesConfig{
@@ -137,7 +138,7 @@ panel_binary_path = "/opt/panel"
 		TelemtContainer: "telemt-ct",
 		PanelContainer:  "panel-ct",
 	}
-	if cfg.Host != wantHost {
+	if !reflect.DeepEqual(cfg.Host, wantHost) {
 		t.Errorf("host = %+v, want %+v", cfg.Host, wantHost)
 	}
 	wantUpdates := UpdatesConfig{

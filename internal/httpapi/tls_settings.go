@@ -174,7 +174,10 @@ func (s *Server) handleGetTLSConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	state.ConfigPath = a.path
 	service, _ := resolveLogicalService("panel", s.svcMgr.Kind(), s.cfg.Host)
-	state.ManualRestartCommand = manualRestartCommand(s.svcMgr.Kind(), service)
+	state.ManualRestartCommand = serviceCommandHint(s.svcMgr, service, "restart")
+	if state.ManualRestartCommand == "" {
+		state.ManualRestartCommand = manualRestartCommand(s.svcMgr.Kind(), service)
+	}
 	if state.Active.TLS.Mode == "" {
 		state.Active.TLS.Mode = "http"
 	}

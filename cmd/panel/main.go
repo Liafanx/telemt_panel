@@ -17,6 +17,7 @@ import (
 
 	"github.com/amirotin/telemt_panel/internal/auth"
 	"github.com/amirotin/telemt_panel/internal/config"
+	"github.com/amirotin/telemt_panel/internal/host"
 	"github.com/amirotin/telemt_panel/internal/httpapi"
 	"github.com/amirotin/telemt_panel/internal/hub"
 	"github.com/amirotin/telemt_panel/internal/migration"
@@ -56,6 +57,12 @@ func main() {
 		case "store":
 			if err := runStoreCommand(os.Args[2:]); err != nil {
 				slog.Error("store", "err", err)
+				os.Exit(1)
+			}
+			return
+		case "service":
+			if err := runServiceCommand(os.Args[2:], host.OSCmdRunner); err != nil {
+				slog.Error("service", "err", err)
 				os.Exit(1)
 			}
 			return
